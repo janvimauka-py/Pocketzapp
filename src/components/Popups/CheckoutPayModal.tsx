@@ -85,8 +85,9 @@ export const CheckoutPayModal: React.FC<CheckoutPayModalProps> = ({
       {step === 'otp' && (
         <OtpModal
           isOpen={true}
-          title="Authenticate Checkout Payment"
-          subtitle={`Approve payment of ${currency}${parseFloat(amount).toFixed(2)} to ${merchant}`}
+          title="Security PIN Verification"
+          subtitle={`Enter your 4-digit PIN to approve payment of ${currency}${parseFloat(amount).toFixed(2)} to ${merchant}`}
+          expectedPin="1507"
           onSuccess={handleOtpSuccess}
           onCancel={() => setStep('review')}
         />

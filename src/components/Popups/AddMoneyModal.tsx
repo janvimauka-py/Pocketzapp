@@ -79,8 +79,9 @@ export const AddMoneyModal: React.FC<AddMoneyModalProps> = ({
       {step === 'otp' && (
         <OtpModal
           isOpen={true}
-          title="Verify Add Money Authorization"
-          subtitle={`Authorize top-up of ${currency}${parseFloat(amount).toFixed(2)} via ${selectedMethod}`}
+          title="Security PIN Verification"
+          subtitle={`Enter your 4-digit PIN to authorize top-up of ${currency}${parseFloat(amount).toFixed(2)}`}
+          expectedPin="1507"
           onSuccess={handleOtpSuccess}
           onCancel={() => setStep('review')}
         />

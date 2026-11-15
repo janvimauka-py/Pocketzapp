@@ -93,8 +93,9 @@ export const TransferMoneyModal: React.FC<TransferMoneyModalProps> = ({
       {step === 'otp' && (
         <OtpModal
           isOpen={true}
-          title="Authorize Peer-to-Peer Transfer"
-          subtitle={`Sending ${currency}${parseFloat(amount).toFixed(2)} to ${recipientName}`}
+          title="Security PIN Verification"
+          subtitle={`Enter your 4-digit PIN to transfer ${currency}${parseFloat(amount).toFixed(2)} to ${recipientName}`}
+          expectedPin="1507"
           onSuccess={handleOtpSuccess}
           onCancel={() => setStep('review')}
         />

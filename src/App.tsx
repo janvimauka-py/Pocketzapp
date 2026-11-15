@@ -284,6 +284,7 @@ export function App() {
                     setSelectedTransferContact(contact);
                     setShowTransferMoney(true);
                   }}
+                  onRecordTransaction={handleRecordTransaction}
                   onCheckoutPay={() => setShowCheckoutPay(true)}
                   onSelectTransaction={(tx) => setReceiptTx(tx)}
                   onNavigateTab={(tab) => setActiveTab(tab)}

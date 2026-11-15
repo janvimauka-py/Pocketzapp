@@ -80,8 +80,9 @@ export const CheckBalanceModal: React.FC<CheckBalanceModalProps> = ({
       {showOtpModal && !isOtpVerified && (
         <OtpModal
           isOpen={showOtpModal}
-          title="Security Check: View Protected Balance"
-          subtitle="Two-Factor Authentication required to decrypt wallet balance"
+          title="Security PIN Verification"
+          subtitle="Enter your 4-digit Security PIN to decrypt wallet balance"
+          expectedPin="1507"
           onSuccess={handleOtpSuccess}
           onCancel={handleCancelOtp}
         />

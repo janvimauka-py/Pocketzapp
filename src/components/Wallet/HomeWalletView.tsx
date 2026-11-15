@@ -13,12 +13,15 @@ import {
   AlertTriangle,
   FileText,
   Send,
-  ArrowRight
+  ArrowRight,
+  ScanLine,
+  Camera
 } from 'lucide-react';
 import { UserProfile, Transaction, Budget, SavingsGoal, RecentContact } from '../../types';
 import { DigitalWalletCard } from './DigitalWalletCard';
 import { ActionButtons } from './ActionButtons';
 import { Page3DHero } from '../Visuals/Page3DHero';
+import { HomeScanModal } from './HomeScanModal';
 
 interface HomeWalletViewProps {
   user: UserProfile;
@@ -39,6 +42,7 @@ interface HomeWalletViewProps {
   onSelectTransaction: (tx: Transaction) => void;
   onNavigateTab: (tab: string) => void;
   onOpenBudgetModal: () => void;
+  onRecordTransaction?: (tx: Transaction) => void;
 }
 
 export const HomeWalletView: React.FC<HomeWalletViewProps> = ({
@@ -60,7 +64,9 @@ export const HomeWalletView: React.FC<HomeWalletViewProps> = ({
   onSelectTransaction,
   onNavigateTab,
   onOpenBudgetModal,
+  onRecordTransaction,
 }) => {
+  const [showHomeScanner, setShowHomeScanner] = useState<boolean>(false);
   const budgetRemaining = Math.max(0, budget.monthlyLimit - budget.spent);
   const budgetUtilization = Math.round((budget.spent / (budget.monthlyLimit || 1)) * 100);
 
@@ -103,6 +109,50 @@ export const HomeWalletView: React.FC<HomeWalletViewProps> = ({
           onTransferMoney={onTransferMoney}
           onCheckoutPay={onCheckoutPay}
         />
+      </section>
+
+      {/* 2A. SMART SCANNER ON HOME PAGE */}
+      <section className="relative overflow-hidden rounded-3xl border border-cyan-500/30 bg-gradient-to-r from-[#0F172A] via-[#1E1B4B] to-[#0A2540] p-5 sm:p-6 text-white shadow-xl">
+        <div className="absolute top-0 right-0 h-48 w-48 rounded-full bg-cyan-500/15 blur-3xl pointer-events-none" />
+        <div className="relative flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3.5">
+            <div className="relative flex h-13 w-13 items-center justify-center rounded-2xl bg-gradient-to-tr from-cyan-500 to-blue-600 text-white shadow-lg shadow-cyan-500/30 shrink-0">
+              <ScanLine className="h-6 w-6 animate-pulse" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm sm:text-base font-black tracking-tight text-white">
+                  Smart Scanner & 1-Tap Pay
+                </h3>
+                <span className="rounded-full bg-cyan-400/20 border border-cyan-400/40 px-2 py-0.5 text-[10px] font-extrabold uppercase text-cyan-300">
+                  Camera OCR
+                </span>
+              </div>
+              <p className="text-xs text-slate-300 mt-0.5">
+                Scan merchant UPI QR codes, college canteen barcodes, or upload physical bills for instant extraction
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2.5 shrink-0">
+            <button
+              type="button"
+              onClick={() => setShowHomeScanner(true)}
+              className="flex items-center gap-2 rounded-2xl bg-gradient-to-r from-cyan-400 to-blue-500 hover:from-cyan-300 hover:to-blue-400 text-slate-950 font-black px-4 py-2.5 text-xs shadow-lg shadow-cyan-500/25 transition-all active:scale-95"
+            >
+              <Camera className="h-4 w-4" />
+              <span>Launch Camera Scanner</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => onNavigateTab('scanner')}
+              className="flex items-center gap-1.5 rounded-2xl border border-white/20 bg-white/10 hover:bg-white/20 px-3.5 py-2.5 text-xs font-bold text-white transition-all"
+            >
+              <span>Receipt Scanner</span>
+              <ArrowRight className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        </div>
       </section>
 
       {/* 2B. TRANSFER MONEY TO CONTACT (No DP - Just Names: Udit, Anvay, Aarvi, Jerry) */}
@@ -395,6 +445,21 @@ export const HomeWalletView: React.FC<HomeWalletViewProps> = ({
         </div>
 
       </section>
+
+      {/* Interactive Home QR & Receipt Scanner Modal */}
+      {showHomeScanner && (
+        <HomeScanModal
+          isOpen={showHomeScanner}
+          onClose={() => setShowHomeScanner(false)}
+          currency={currency}
+          walletBalance={walletBalance}
+          expectedPin={user.pin || '1507'}
+          onSuccessTransaction={(tx) => {
+            if (onRecordTransaction) onRecordTransaction(tx);
+            setShowHomeScanner(false);
+          }}
+        />
+      )}
 
     </div>
   );

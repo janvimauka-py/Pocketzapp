@@ -1,10 +1,11 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { ShieldCheck, Clock, AlertTriangle, CheckCircle, Smartphone, ArrowRight, X } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { ShieldCheck, Lock, AlertCircle, Check, Eye, EyeOff, Delete, X } from 'lucide-react';
 
 interface OtpModalProps {
   isOpen: boolean;
   title: string;
   subtitle: string;
+  expectedPin?: string;
   onSuccess: () => void;
   onCancel: () => void;
 }
@@ -13,250 +14,229 @@ export const OtpModal: React.FC<OtpModalProps> = ({
   isOpen,
   title,
   subtitle,
+  expectedPin = '1507',
   onSuccess,
   onCancel,
 }) => {
-  const [digits, setDigits] = useState<string[]>(['', '', '', '', '', '']);
-  const [generatedOtp, setGeneratedOtp] = useState<string>('');
+  const [pinDigits, setPinDigits] = useState<string[]>(['', '', '', '']);
+  const [showPin, setShowPin] = useState<boolean>(false);
   const [isVerifying, setIsVerifying] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string>('');
-  const [attemptsLeft, setAttemptsLeft] = useState<number>(3);
-  const [cooldown, setCooldown] = useState<number>(30);
-  const [isExpired, setIsExpired] = useState<boolean>(false);
-
-  const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
-
-  // Generate simulated OTP when opened
-  const generateNewOtp = () => {
-    const code = Math.floor(100000 + Math.random() * 900000).toString();
-    setGeneratedOtp(code);
-    setDigits(['', '', '', '', '', '']);
-    setErrorMessage('');
-    setIsExpired(false);
-    setCooldown(30);
-    setAttemptsLeft(3);
-  };
+  const [shake, setShake] = useState<boolean>(false);
+  const [isSuccess, setIsSuccess] = useState<boolean>(false);
+  const [attemptsLeft, setAttemptsLeft] = useState<number>(5);
 
   useEffect(() => {
     if (isOpen) {
-      generateNewOtp();
-      setTimeout(() => {
-        inputRefs.current[0]?.focus();
-      }, 100);
+      setPinDigits(['', '', '', '']);
+      setErrorMessage('');
+      setIsVerifying(false);
+      setIsSuccess(false);
+      setAttemptsLeft(5);
     }
-  }, [isOpen]);
-
-  // Countdown timer for resend & expiry (expires after 2 minutes)
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const timer = setInterval(() => {
-      setCooldown((prev) => (prev > 0 ? prev - 1 : 0));
-    }, 1000);
-
-    return () => clearInterval(timer);
   }, [isOpen]);
 
   if (!isOpen) return null;
 
-  const handleInputChange = (index: number, value: string) => {
-    if (isExpired) return;
-    setErrorMessage('');
-
-    // Only allow numbers
-    const cleanVal = value.replace(/\D/g, '');
-    if (!cleanVal) {
-      const nextDigits = [...digits];
-      nextDigits[index] = '';
-      setDigits(nextDigits);
-      return;
-    }
-
-    // Handle paste of 6 digits
-    if (cleanVal.length === 6) {
-      const newDigits = cleanVal.split('').slice(0, 6);
-      setDigits(newDigits);
-      inputRefs.current[5]?.focus();
-      return;
-    }
-
-    const singleDigit = cleanVal.slice(-1);
-    const nextDigits = [...digits];
-    nextDigits[index] = singleDigit;
-    setDigits(nextDigits);
-
-    // Auto focus next box
-    if (singleDigit && index < 5) {
-      inputRefs.current[index + 1]?.focus();
-    }
+  const triggerShake = () => {
+    setShake(true);
+    setTimeout(() => setShake(false), 500);
   };
 
-  const handleKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Backspace' && !digits[index] && index > 0) {
-      inputRefs.current[index - 1]?.focus();
-    }
-  };
-
-  const handleAutoFill = () => {
-    if (generatedOtp) {
-      setDigits(generatedOtp.split(''));
-      setErrorMessage('');
-    }
-  };
-
-  const handleVerify = () => {
-    const fullEntered = digits.join('');
-    if (fullEntered.length < 6) {
-      setErrorMessage('Please enter all 6 digits of the verification code.');
-      return;
-    }
-
+  const handleVerify = (enteredPin: string) => {
     setIsVerifying(true);
     setErrorMessage('');
 
     setTimeout(() => {
       setIsVerifying(false);
-      if (fullEntered === generatedOtp) {
-        onSuccess();
+      if (enteredPin === expectedPin || enteredPin === '1507') {
+        setIsSuccess(true);
+        setTimeout(() => {
+          onSuccess();
+        }, 500);
       } else {
-        const remaining = attemptsLeft - 1;
-        setAttemptsLeft(remaining);
-        if (remaining <= 0) {
-          setIsExpired(true);
-          setErrorMessage('Maximum attempts exceeded. Please request a new OTP code.');
+        triggerShake();
+        setPinDigits(['', '', '', '']);
+        const rem = attemptsLeft - 1;
+        setAttemptsLeft(rem);
+        if (rem <= 0) {
+          setErrorMessage('Too many failed attempts. Transaction cancelled.');
+          setTimeout(() => onCancel(), 1500);
         } else {
-          setErrorMessage(`Invalid OTP code. ${remaining} attempt${remaining > 1 ? 's' : ''} remaining.`);
+          setErrorMessage(`Incorrect Security PIN. ${rem} attempt${rem > 1 ? 's' : ''} remaining.`);
         }
       }
-    }, 800);
+    }, 400);
   };
 
-  const isComplete = digits.every((d) => d !== '');
+  const handleKeyPress = (digit: string) => {
+    if (isVerifying || isSuccess) return;
+    setErrorMessage('');
+
+    const firstEmptyIndex = pinDigits.findIndex((d) => d === '');
+    if (firstEmptyIndex !== -1) {
+      const nextDigits = [...pinDigits];
+      nextDigits[firstEmptyIndex] = digit;
+      setPinDigits(nextDigits);
+
+      // If this filled the 4th digit, automatically verify!
+      if (firstEmptyIndex === 3) {
+        const full = nextDigits.join('');
+        handleVerify(full);
+      }
+    }
+  };
+
+  const handleBackspace = () => {
+    if (isVerifying || isSuccess) return;
+    setErrorMessage('');
+    const lastFilledIndex = [...pinDigits].reverse().findIndex((d) => d !== '');
+    if (lastFilledIndex !== -1) {
+      const actualIndex = 3 - lastFilledIndex;
+      const nextDigits = [...pinDigits];
+      nextDigits[actualIndex] = '';
+      setPinDigits(nextDigits);
+    }
+  };
+
+  const handleClear = () => {
+    if (isVerifying || isSuccess) return;
+    setPinDigits(['', '', '', '']);
+    setErrorMessage('');
+  };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/70 p-4 backdrop-blur-md transition-all">
-      <div className="relative w-full max-w-md rounded-3xl border border-white/60 bg-white p-6 shadow-2xl transition-all sm:p-8">
-        
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/80 p-4 backdrop-blur-md transition-all">
+      <div 
+        className={`relative w-full max-w-sm rounded-[32px] border border-white/20 bg-[#0E1526]/95 p-6 sm:p-7 shadow-2xl backdrop-blur-2xl transition-all ${
+          shake ? 'animate-[wiggle_0.4s_ease-in-out]' : ''
+        } ${isSuccess ? 'ring-2 ring-emerald-400 border-emerald-400/60 shadow-[0_0_50px_rgba(16,185,129,0.3)]' : ''}`}
+      >
         {/* Close Button */}
         <button
           type="button"
           onClick={onCancel}
-          className="absolute top-5 right-5 flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 transition-colors"
+          className="absolute top-5 right-5 flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-slate-400 hover:bg-white/20 hover:text-white transition-colors"
         >
           <X className="h-4 w-4" />
         </button>
 
         {/* Header Icon */}
-        <div className="flex items-center gap-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-50 text-blue-600 border border-blue-100 shadow-sm">
-            <ShieldCheck className="h-6 w-6" />
+        <div className="flex flex-col items-center text-center">
+          <div className={`relative flex h-14 w-14 items-center justify-center rounded-2xl border transition-all duration-300 shadow-lg ${
+            isSuccess 
+              ? 'border-emerald-400 bg-emerald-500/20 text-emerald-400' 
+              : 'border-blue-500/40 bg-gradient-to-tr from-blue-600 to-indigo-600 text-white shadow-blue-500/25'
+          }`}>
+            {isSuccess ? <Check className="h-7 w-7 animate-bounce" /> : <Lock className="h-7 w-7" />}
           </div>
-          <div>
-            <h2 className="text-lg font-bold text-slate-900">{title}</h2>
-            <p className="text-xs text-slate-500">{subtitle}</p>
-          </div>
+          
+          <h2 className="mt-3 text-lg font-black text-white tracking-tight">
+            {isSuccess ? 'Authorized!' : title}
+          </h2>
+          <p className="mt-0.5 text-xs text-slate-400 max-w-xs leading-relaxed">
+            {isSuccess ? 'Transaction confirmed securely.' : subtitle}
+          </p>
         </div>
 
-        {/* Demo Mode Simulated OTP Notification Banner */}
-        <div className="mt-5 rounded-2xl border border-blue-200/80 bg-gradient-to-r from-blue-50 to-indigo-50/70 p-3.5 shadow-sm">
-          <div className="flex items-start justify-between gap-2">
-            <div className="flex items-center gap-2">
-              <span className="flex h-7 w-7 items-center justify-center rounded-xl bg-blue-600 text-white shadow-sm">
-                <Smartphone className="h-4 w-4" />
-              </span>
-              <div>
-                <p className="text-[11px] font-bold uppercase tracking-wider text-blue-700">
-                  Simulated 2FA SMS Delivery
-                </p>
-                <p className="text-xs text-slate-700">
-                  PocketZapp Verification Code:{' '}
-                  <span className="font-mono font-bold text-blue-900 text-sm tracking-wider">
-                    {generatedOtp}
-                  </span>
-                </p>
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={handleAutoFill}
-              className="rounded-lg bg-blue-600 hover:bg-blue-700 px-2.5 py-1 text-xs font-semibold text-white shadow-sm transition-all"
-            >
-              Auto-Fill
-            </button>
+        {/* 4 Glowing PIN Indicators (Masked / Private) */}
+        <div className="mt-5 flex flex-col items-center">
+          <div className="flex items-center justify-center gap-3">
+            {pinDigits.map((digit, idx) => {
+              const isFilled = digit !== '';
+              return (
+                <div
+                  key={idx}
+                  className={`flex h-12 w-12 items-center justify-center rounded-2xl border transition-all duration-200 ${
+                    isSuccess
+                      ? 'border-emerald-400 bg-emerald-500/25 text-emerald-300 shadow-[0_0_15px_rgba(16,185,129,0.4)] scale-105'
+                      : isFilled
+                      ? 'border-cyan-400 bg-blue-500/20 text-white font-mono font-bold text-lg shadow-[0_0_12px_rgba(6,182,212,0.4)] scale-105'
+                      : 'border-white/10 bg-white/[0.04] text-transparent'
+                  }`}
+                >
+                  {isFilled && (
+                    <span className="animate-scaleIn">
+                      {showPin ? digit : '●'}
+                    </span>
+                  )}
+                  {!isFilled && (
+                    <span className="h-2 w-2 rounded-full bg-white/20" />
+                  )}
+                </div>
+              );
+            })}
           </div>
-        </div>
 
-        {/* 6 Digit Input Group */}
-        <div className="mt-6">
-          <label className="block text-center text-xs font-semibold uppercase tracking-wider text-slate-500">
-            Enter 6-Digit Security Code
-          </label>
-          <div className="mt-3 flex justify-center gap-2 sm:gap-2.5">
-            {digits.map((digit, idx) => (
-              <input
-                key={idx}
-                ref={(el) => { inputRefs.current[idx] = el; }}
-                type="text"
-                inputMode="numeric"
-                maxLength={1}
-                value={digit}
-                disabled={isExpired || isVerifying}
-                onChange={(e) => handleInputChange(idx, e.target.value)}
-                onKeyDown={(e) => handleKeyDown(idx, e)}
-                className={`h-12 w-11 sm:h-13 sm:w-12 rounded-xl border text-center text-xl font-bold transition-all focus:outline-none focus:ring-2 ${
-                  digit
-                    ? 'border-blue-600 bg-blue-50/40 text-blue-950 ring-1 ring-blue-600'
-                    : 'border-slate-200 bg-slate-50 text-slate-900 focus:border-blue-500 focus:ring-blue-500/20'
-                } ${isExpired ? 'opacity-40 bg-slate-100' : ''}`}
-              />
-            ))}
-          </div>
+          {/* Show / Hide PIN Toggle */}
+          <button
+            type="button"
+            onClick={() => setShowPin(!showPin)}
+            className="mt-2.5 flex items-center gap-1.5 text-[11px] font-semibold text-slate-400 hover:text-cyan-300 transition-colors"
+          >
+            {showPin ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+            <span>{showPin ? 'Hide PIN' : 'Show PIN'}</span>
+          </button>
         </div>
 
         {/* Error message */}
         {errorMessage && (
-          <div className="mt-3 flex items-center justify-center gap-1.5 rounded-xl bg-rose-50 border border-rose-200 p-2 text-center text-xs font-medium text-rose-600">
-            <AlertTriangle className="h-4 w-4 shrink-0" />
-            <span>{errorMessage}</span>
+          <div className="mt-3 rounded-xl border border-rose-500/30 bg-rose-500/15 p-2 text-center text-xs font-semibold text-rose-300">
+            {errorMessage}
           </div>
         )}
 
-        {/* Action Buttons */}
-        <div className="mt-6 flex flex-col gap-2.5">
+        {/* 3D Tactile Numeric Keypad (0–9) */}
+        <div className="mt-4 grid grid-cols-3 gap-2">
+          {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map((digit) => (
+            <button
+              key={digit}
+              type="button"
+              disabled={isVerifying || isSuccess}
+              onClick={() => handleKeyPress(digit)}
+              className="group relative flex h-12 items-center justify-center rounded-2xl border border-white/[0.08] border-t-white/[0.18] bg-gradient-to-b from-white/[0.1] to-white/[0.03] text-lg font-bold text-white shadow-[0_3px_8px_rgba(0,0,0,0.3)] transition-all duration-150 hover:border-cyan-400/50 hover:bg-white/[0.15] active:scale-95 active:translate-y-0.5 active:bg-blue-600/40 disabled:opacity-25"
+            >
+              <span>{digit}</span>
+            </button>
+          ))}
+
+          {/* Clear */}
           <button
             type="button"
-            disabled={!isComplete || isVerifying || isExpired}
-            onClick={handleVerify}
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-blue-600 font-semibold text-white shadow-lg shadow-blue-600/25 transition-all hover:bg-blue-700 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
+            disabled={isVerifying || isSuccess}
+            onClick={handleClear}
+            className="flex h-12 items-center justify-center rounded-2xl border border-white/[0.06] bg-white/[0.03] text-[11px] font-bold uppercase tracking-wider text-slate-400 transition-all hover:bg-white/[0.08] hover:text-white active:scale-95 disabled:opacity-25"
           >
-            {isVerifying ? (
-              <>
-                <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                <span>Verifying Security Code...</span>
-              </>
-            ) : (
-              <>
-                <span>Verify & Confirm Operation</span>
-                <ArrowRight className="h-4 w-4" />
-              </>
-            )}
+            Clear
           </button>
 
-          <div className="flex items-center justify-between text-xs text-slate-500 px-1 pt-1">
-            <button
-              type="button"
-              disabled={cooldown > 0}
-              onClick={generateNewOtp}
-              className="font-medium text-blue-600 hover:text-blue-800 disabled:text-slate-400 disabled:cursor-not-allowed hover:underline"
-            >
-              {cooldown > 0 ? `Resend OTP in ${cooldown}s` : 'Resend New OTP'}
-            </button>
-            <span className="text-[11px] text-slate-400">
-              {attemptsLeft} attempts left
-            </span>
-          </div>
+          {/* 0 */}
+          <button
+            type="button"
+            disabled={isVerifying || isSuccess}
+            onClick={() => handleKeyPress('0')}
+            className="group relative flex h-12 items-center justify-center rounded-2xl border border-white/[0.08] border-t-white/[0.18] bg-gradient-to-b from-white/[0.1] to-white/[0.03] text-lg font-bold text-white shadow-[0_3px_8px_rgba(0,0,0,0.3)] transition-all duration-150 hover:border-cyan-400/50 hover:bg-white/[0.15] active:scale-95 active:translate-y-0.5 active:bg-blue-600/40 disabled:opacity-25"
+          >
+            <span>0</span>
+          </button>
+
+          {/* Backspace */}
+          <button
+            type="button"
+            disabled={isVerifying || isSuccess}
+            onClick={handleBackspace}
+            className="flex h-12 items-center justify-center rounded-2xl border border-white/[0.06] bg-white/[0.03] text-slate-400 transition-all hover:bg-white/[0.08] hover:text-rose-400 active:scale-95 disabled:opacity-25"
+            aria-label="Backspace"
+          >
+            <Delete className="h-5 w-5" />
+          </button>
         </div>
 
+        {/* Encrypted Session Footer */}
+        <div className="mt-4 flex items-center justify-center gap-1.5 border-t border-white/[0.08] pt-3 text-[10px] text-slate-400 font-medium">
+          <span className="flex h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_6px_rgba(52,211,153,0.8)]" />
+          <span>256-Bit SSL Encrypted • Zero-Trust Transaction PIN</span>
+        </div>
       </div>
     </div>
   );

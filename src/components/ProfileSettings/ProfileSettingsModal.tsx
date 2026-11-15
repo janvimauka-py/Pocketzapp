@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { 
   User, 
   Shield, 
@@ -13,7 +13,18 @@ import {
   RotateCcw,
   CheckCircle2,
   ExternalLink,
-  Lock
+  Lock,
+  Mail,
+  Phone,
+  Upload,
+  Camera,
+  CreditCard,
+  Building2,
+  Eye,
+  EyeOff,
+  Wifi,
+  Cpu,
+  ArrowRight
 } from 'lucide-react';
 import { UserProfile } from '../../types';
 import { testSupabaseConnection, SUPABASE_SQL_SCHEMA } from '../../services/supabase';
@@ -35,7 +46,7 @@ export const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
   onLogout,
   onResetDemo,
 }) => {
-  const [activeTab, setActiveTab] = useState<'profile' | 'security' | 'supabase' | 'ai' | 'help'>('profile');
+  const [activeTab, setActiveTab] = useState<'profile' | 'bank' | 'security' | 'supabase' | 'ai' | 'help'>('profile');
 
   // Profile form
   const [name, setName] = useState<string>(user.name);
@@ -43,6 +54,21 @@ export const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
   const [phone, setPhone] = useState<string>(user.phone);
   const [collegeId, setCollegeId] = useState<string>(user.collegeId);
   const [avatar, setAvatar] = useState<string>(user.avatar);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  // Bank & Card Details
+  const [bankName, setBankName] = useState<string>(user.bankName || 'HDFC Bank (Student Premium)');
+  const [bankAccountNumber, setBankAccountNumber] = useState<string>(user.bankAccountNumber || '•••• •••• 9841');
+  const [bankBalance, setBankBalance] = useState<number>(user.bankBalance ?? 142500);
+  const [bankIfsc, setBankIfsc] = useState<string>(user.bankIfsc || 'HDFC0001248');
+
+  const [creditCardHolder, setCreditCardHolder] = useState<string>(user.creditCardHolder || user.name.toUpperCase());
+  const [creditCardNumber, setCreditCardNumber] = useState<string>(user.creditCardNumber || '4532 •••• •••• 5128');
+  const [creditCardExpiry, setCreditCardExpiry] = useState<string>(user.creditCardExpiry || '08/29');
+  const [creditCardCvv, setCreditCardCvv] = useState<string>(user.creditCardCvv || '842');
+  const [creditCardLimit, setCreditCardLimit] = useState<number>(user.creditCardLimit ?? 200000);
+  const [creditCardAvailable, setCreditCardAvailable] = useState<number>(user.creditCardAvailable ?? 165000);
+  const [showCardDetails, setShowCardDetails] = useState<boolean>(false);
 
   // Security (Change PIN)
   const [oldPin, setOldPin] = useState<string>('');
@@ -73,6 +99,25 @@ export const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
     'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=300&q=80',
   ];
 
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        if (typeof reader.result === 'string') {
+          setAvatar(reader.result);
+          onUpdateUser({
+            ...user,
+            avatar: reader.result,
+          });
+          setGeneralSuccess('Profile picture uploaded successfully!');
+          setTimeout(() => setGeneralSuccess(''), 3000);
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleSaveProfile = (e: React.FormEvent) => {
     e.preventDefault();
     onUpdateUser({
@@ -83,7 +128,26 @@ export const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
       collegeId,
       avatar,
     });
-    setGeneralSuccess('Profile updated successfully!');
+    setGeneralSuccess('Profile information updated successfully!');
+    setTimeout(() => setGeneralSuccess(''), 3000);
+  };
+
+  const handleSaveBankAndCards = (e: React.FormEvent) => {
+    e.preventDefault();
+    onUpdateUser({
+      ...user,
+      bankName,
+      bankAccountNumber,
+      bankBalance,
+      bankIfsc,
+      creditCardHolder,
+      creditCardNumber,
+      creditCardExpiry,
+      creditCardCvv,
+      creditCardLimit,
+      creditCardAvailable,
+    });
+    setGeneralSuccess('Bank and credit card details saved successfully!');
     setTimeout(() => setGeneralSuccess(''), 3000);
   };
 
@@ -156,26 +220,36 @@ export const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/70 p-4 backdrop-blur-md">
-      <div className="relative flex h-[85vh] w-full max-w-2xl flex-col rounded-3xl border border-white/60 bg-white shadow-2xl overflow-hidden">
+      <div className="relative flex h-[88vh] w-full max-w-2xl flex-col rounded-3xl border border-white/60 bg-white shadow-2xl overflow-hidden">
         
         {/* Top Header */}
         <div className="flex items-center justify-between border-b border-slate-100 p-5">
           <div className="flex items-center gap-3">
-            <img
-              src={user.avatar}
-              alt={user.name}
-              className="h-10 w-10 rounded-full object-cover ring-2 ring-blue-500/20"
-            />
+            <div className="relative">
+              <img
+                src={user.avatar}
+                alt={user.name}
+                className="h-11 w-11 rounded-full object-cover ring-2 ring-blue-500/30"
+              />
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                title="Change Photo"
+                className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-blue-600 text-white shadow-sm hover:bg-blue-700 transition-colors"
+              >
+                <Camera className="h-3 w-3" />
+              </button>
+            </div>
             <div>
               <h2 className="text-base font-extrabold text-slate-900">{user.name}</h2>
-              <p className="text-xs text-slate-400">Settings & Preferences • {user.collegeId}</p>
+              <p className="text-xs text-slate-400">Settings & Financial Identity • {user.collegeId}</p>
             </div>
           </div>
 
           <button
             type="button"
             onClick={onClose}
-            className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200"
+            className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 transition-colors"
           >
             <X className="h-4 w-4" />
           </button>
@@ -184,10 +258,11 @@ export const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
         {/* Tab Pills */}
         <div className="flex border-b border-slate-100 px-5 bg-slate-50/50 gap-2 overflow-x-auto py-2">
           {[
-            { id: 'profile', label: 'Profile', icon: User },
+            { id: 'profile', label: 'Profile Info', icon: User },
+            { id: 'bank', label: 'Bank & Credit Cards', icon: CreditCard },
             { id: 'security', label: 'PIN & Security', icon: Shield },
             { id: 'supabase', label: 'Supabase DB', icon: Database },
-            { id: 'ai', label: 'AI Configuration', icon: Sparkles },
+            { id: 'ai', label: 'AI Engine', icon: Sparkles },
             { id: 'help', label: 'Help & FAQs', icon: HelpCircle },
           ].map((tab) => {
             const Icon = tab.icon;
@@ -219,67 +294,125 @@ export const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
             </div>
           )}
 
-          {/* Tab 1: Profile */}
+          {/* TAB 1: PROFILE INFO & PICTURE UPLOAD */}
           {activeTab === 'profile' && (
             <form onSubmit={handleSaveProfile} className="space-y-4">
-              <div>
-                <label className="text-xs font-semibold text-slate-700">Choose Avatar</label>
-                <div className="mt-2 flex gap-3">
-                  {sampleAvatars.map((url, i) => (
+              
+              {/* Picture Upload & Preview */}
+              <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="flex items-center gap-3.5">
                     <img
-                      key={i}
-                      src={url}
-                      alt="avatar"
-                      onClick={() => setAvatar(url)}
-                      className={`h-12 w-12 rounded-full object-cover cursor-pointer transition-all ${
-                        avatar === url ? 'ring-3 ring-blue-600 scale-105' : 'opacity-70 hover:opacity-100'
-                      }`}
+                      src={avatar}
+                      alt="avatar preview"
+                      className="h-16 w-16 rounded-2xl object-cover ring-2 ring-blue-500/40 shadow-sm"
                     />
-                  ))}
+                    <div>
+                      <h4 className="text-xs font-bold text-slate-800">Profile Picture</h4>
+                      <p className="text-[11px] text-slate-400">Upload your own photo or pick an avatar</p>
+                      
+                      {/* Hidden File Input */}
+                      <input
+                        type="file"
+                        ref={fileInputRef}
+                        accept="image/*"
+                        onChange={handleImageUpload}
+                        className="hidden"
+                      />
+
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        className="mt-2 flex items-center gap-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 text-xs font-bold shadow-xs transition-all"
+                      >
+                        <Upload className="h-3.5 w-3.5" />
+                        <span>Upload Picture</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Preset Avatars */}
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                      Or Choose Preset
+                    </label>
+                    <div className="flex gap-2">
+                      {sampleAvatars.map((url, i) => (
+                        <img
+                          key={i}
+                          src={url}
+                          alt={`preset ${i}`}
+                          onClick={() => setAvatar(url)}
+                          className={`h-9 w-9 rounded-full object-cover cursor-pointer transition-all ${
+                            avatar === url ? 'ring-2 ring-blue-600 scale-105' : 'opacity-60 hover:opacity-100'
+                          }`}
+                        />
+                      ))}
+                    </div>
+                  </div>
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              {/* Full Name & Gmail */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-semibold text-slate-700">Full Name</label>
+                  <label className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
+                    <User className="h-3.5 w-3.5 text-blue-600" />
+                    <span>Full Name</span>
+                  </label>
                   <input
                     type="text"
                     required
                     value={name}
                     onChange={(e) => setName(e.target.value)}
+                    placeholder="Janvi Mauka"
                     className="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-bold text-slate-800 focus:border-blue-500 focus:bg-white focus:outline-none"
                   />
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-slate-700">Email Address</label>
+                  <label className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
+                    <Mail className="h-3.5 w-3.5 text-rose-500" />
+                    <span>Gmail / Email Address</span>
+                  </label>
                   <input
                     type="email"
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-800 focus:border-blue-500 focus:bg-white focus:outline-none"
+                    placeholder="janvi.mauka@gmail.com"
+                    className="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-bold text-slate-800 focus:border-blue-500 focus:bg-white focus:outline-none"
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              {/* Phone & Student ID */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-semibold text-slate-700">College / Student ID</label>
+                  <label className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
+                    <Phone className="h-3.5 w-3.5 text-emerald-600" />
+                    <span>Phone Number</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    placeholder="+91 98200 12345"
+                    className="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-bold text-slate-800 focus:border-blue-500 focus:bg-white focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
+                    <Shield className="h-3.5 w-3.5 text-indigo-600" />
+                    <span>College / Student ID</span>
+                  </label>
                   <input
                     type="text"
                     required
                     value={collegeId}
                     onChange={(e) => setCollegeId(e.target.value)}
-                    className="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-800 focus:border-blue-500 focus:bg-white focus:outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs font-semibold text-slate-700">Phone Number</label>
-                  <input
-                    type="text"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    className="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-800 focus:border-blue-500 focus:bg-white focus:outline-none"
+                    placeholder="CS-2024-8841"
+                    className="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-bold text-slate-800 focus:border-blue-500 focus:bg-white focus:outline-none"
                   />
                 </div>
               </div>
@@ -295,60 +428,243 @@ export const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
             </form>
           )}
 
-          {/* Tab 2: Security (Change PIN) */}
+          {/* TAB 2: BANK BALANCE & CREDIT CARD DETAILS */}
+          {activeTab === 'bank' && (
+            <form onSubmit={handleSaveBankAndCards} className="space-y-6">
+              
+              {/* Linked Bank Account Card */}
+              <div className="rounded-2xl border border-slate-200 bg-gradient-to-br from-blue-50/70 to-indigo-50/40 p-4 shadow-xs">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-600 text-white shadow-sm">
+                      <Building2 className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-bold text-slate-900">Primary Linked Bank Account</h4>
+                      <p className="text-[10px] text-slate-500">Auto-cleared UPI & NetBanking Source</p>
+                    </div>
+                  </div>
+                  <span className="rounded-full bg-emerald-100 border border-emerald-200 px-2 py-0.5 text-[10px] font-bold text-emerald-800">
+                    Active & Linked
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                  <div>
+                    <label className="font-semibold text-slate-700">Bank Name</label>
+                    <input
+                      type="text"
+                      value={bankName}
+                      onChange={(e) => setBankName(e.target.value)}
+                      placeholder="e.g. HDFC Bank"
+                      className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 font-bold text-slate-800 focus:border-blue-500 focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="font-semibold text-slate-700">Account Number</label>
+                    <input
+                      type="text"
+                      value={bankAccountNumber}
+                      onChange={(e) => setBankAccountNumber(e.target.value)}
+                      placeholder="•••• •••• 9841"
+                      className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 font-mono font-bold text-slate-800 focus:border-blue-500 focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="font-semibold text-slate-700">Bank Available Balance (₹)</label>
+                    <input
+                      type="number"
+                      step="any"
+                      value={bankBalance}
+                      onChange={(e) => setBankBalance(parseFloat(e.target.value) || 0)}
+                      className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 font-extrabold text-blue-700 focus:border-blue-500 focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="font-semibold text-slate-700">IFSC Code</label>
+                    <input
+                      type="text"
+                      value={bankIfsc}
+                      onChange={(e) => setBankIfsc(e.target.value)}
+                      placeholder="HDFC0001248"
+                      className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 font-mono font-bold text-slate-800 focus:border-blue-500 focus:outline-none"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* 3D Digital Credit Card Display */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <h4 className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
+                    <CreditCard className="h-4 w-4 text-indigo-600" />
+                    <span>Credit Card Details</span>
+                  </h4>
+                  <button
+                    type="button"
+                    onClick={() => setShowCardDetails(!showCardDetails)}
+                    className="flex items-center gap-1 text-[11px] font-semibold text-indigo-600 hover:underline"
+                  >
+                    {showCardDetails ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
+                    <span>{showCardDetails ? 'Hide Sensitive Info' : 'Reveal Numbers'}</span>
+                  </button>
+                </div>
+
+                {/* Credit Card Visual */}
+                <div className="relative overflow-hidden rounded-3xl bg-gradient-to-tr from-[#0F172A] via-[#1E1B4B] to-[#312E81] p-5 text-white shadow-xl">
+                  {/* Decorative ambient elements */}
+                  <div className="absolute -top-12 -right-12 h-40 w-40 rounded-full bg-cyan-500/20 blur-2xl pointer-events-none" />
+                  <div className="absolute -bottom-10 -left-10 h-36 w-36 rounded-full bg-rose-500/20 blur-2xl pointer-events-none" />
+
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-bold uppercase tracking-widest text-indigo-200">PocketZapp Platinum Card</span>
+                    <Wifi className="h-4 w-4 text-cyan-300 rotate-90" />
+                  </div>
+
+                  <div className="my-4 flex items-center gap-3">
+                    <div className="flex h-7 w-9 items-center justify-center rounded-md bg-amber-400/90 border border-amber-300 shadow-xs">
+                      <Cpu className="h-4 w-4 text-amber-950" />
+                    </div>
+                    <span className="font-mono text-base sm:text-lg tracking-[0.2em] font-extrabold text-white">
+                      {showCardDetails ? creditCardNumber.replace(/•/g, '4') : creditCardNumber}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between text-xs pt-1 border-t border-white/10">
+                    <div>
+                      <span className="text-[9px] uppercase tracking-wider text-slate-400 block">Cardholder</span>
+                      <p className="font-bold tracking-wider">{creditCardHolder}</p>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-[9px] uppercase tracking-wider text-slate-400 block">Expires / CVV</span>
+                      <p className="font-mono font-bold tracking-wider">
+                        {creditCardExpiry} • {showCardDetails ? creditCardCvv : '•••'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Credit Card Edit Inputs */}
+                <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-xs">
+                  <div>
+                    <label className="font-semibold text-slate-700">Cardholder Name</label>
+                    <input
+                      type="text"
+                      value={creditCardHolder}
+                      onChange={(e) => setCreditCardHolder(e.target.value)}
+                      className="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 px-2.5 py-1.5 font-bold text-slate-800 text-xs focus:border-indigo-500 focus:bg-white focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="font-semibold text-slate-700">Card Number</label>
+                    <input
+                      type="text"
+                      value={creditCardNumber}
+                      onChange={(e) => setCreditCardNumber(e.target.value)}
+                      className="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 px-2.5 py-1.5 font-mono font-bold text-slate-800 text-xs focus:border-indigo-500 focus:bg-white focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="font-semibold text-slate-700">Expiry (MM/YY)</label>
+                    <input
+                      type="text"
+                      value={creditCardExpiry}
+                      onChange={(e) => setCreditCardExpiry(e.target.value)}
+                      className="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 px-2.5 py-1.5 font-mono font-bold text-slate-800 text-xs focus:border-indigo-500 focus:bg-white focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="font-semibold text-slate-700">CVV</label>
+                    <input
+                      type="text"
+                      maxLength={4}
+                      value={creditCardCvv}
+                      onChange={(e) => setCreditCardCvv(e.target.value)}
+                      className="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 px-2.5 py-1.5 font-mono font-bold text-slate-800 text-xs focus:border-indigo-500 focus:bg-white focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                {/* Limit details */}
+                <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-2.5">
+                    <span className="text-slate-400 text-[10px] uppercase font-bold">Total Credit Limit</span>
+                    <p className="text-sm font-extrabold text-slate-800">₹{creditCardLimit.toLocaleString()}</p>
+                  </div>
+                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-2.5">
+                    <span className="text-slate-400 text-[10px] uppercase font-bold">Available Credit</span>
+                    <p className="text-sm font-extrabold text-emerald-600">₹{creditCardAvailable.toLocaleString()}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-2">
+                <button
+                  type="submit"
+                  className="rounded-xl bg-blue-600 px-5 py-2.5 text-xs font-semibold text-white shadow-md shadow-blue-600/30 hover:bg-blue-700 transition-all"
+                >
+                  Save Bank & Card Details
+                </button>
+              </div>
+            </form>
+          )}
+
+          {/* TAB 3: PIN & SECURITY */}
           {activeTab === 'security' && (
-            <form onSubmit={handleChangePin} className="space-y-4 max-w-sm">
-              <h3 className="font-bold text-slate-900 text-sm">Change App Security PIN</h3>
-              <p className="text-xs text-slate-400">Update your 4-digit master PIN used on the lock screen.</p>
+            <div className="space-y-6 max-w-sm">
+              <form onSubmit={handleChangePin} className="space-y-4">
+                <h3 className="font-bold text-slate-900 text-sm">Change App Security PIN</h3>
+                <p className="text-xs text-slate-400">Update your 4-digit master PIN used for unlock and transactions.</p>
 
-              <div>
-                <label className="text-xs font-semibold text-slate-700">Current PIN</label>
-                <input
-                  type="password"
-                  maxLength={4}
-                  required
-                  placeholder="••••"
-                  value={oldPin}
-                  onChange={(e) => setOldPin(e.target.value)}
-                  className="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-mono font-bold tracking-widest text-slate-800 focus:border-blue-500 focus:bg-white focus:outline-none"
-                />
-              </div>
+                <div>
+                  <label className="text-xs font-semibold text-slate-700">Current PIN</label>
+                  <input
+                    type="password"
+                    maxLength={4}
+                    required
+                    placeholder="••••"
+                    value={oldPin}
+                    onChange={(e) => setOldPin(e.target.value)}
+                    className="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-mono font-bold tracking-widest text-slate-800 focus:border-blue-500 focus:bg-white focus:outline-none"
+                  />
+                </div>
 
-              <div>
-                <label className="text-xs font-semibold text-slate-700">New 4-Digit PIN</label>
-                <input
-                  type="password"
-                  maxLength={4}
-                  required
-                  placeholder="••••"
-                  value={newPin}
-                  onChange={(e) => setNewPin(e.target.value)}
-                  className="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-mono font-bold tracking-widest text-slate-800 focus:border-blue-500 focus:bg-white focus:outline-none"
-                />
-              </div>
+                <div>
+                  <label className="text-xs font-semibold text-slate-700">New 4-Digit PIN</label>
+                  <input
+                    type="password"
+                    maxLength={4}
+                    required
+                    placeholder="••••"
+                    value={newPin}
+                    onChange={(e) => setNewPin(e.target.value)}
+                    className="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-mono font-bold tracking-widest text-slate-800 focus:border-blue-500 focus:bg-white focus:outline-none"
+                  />
+                </div>
 
-              <div>
-                <label className="text-xs font-semibold text-slate-700">Confirm New PIN</label>
-                <input
-                  type="password"
-                  maxLength={4}
-                  required
-                  placeholder="••••"
-                  value={confirmNewPin}
-                  onChange={(e) => setConfirmNewPin(e.target.value)}
-                  className="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-mono font-bold tracking-widest text-slate-800 focus:border-blue-500 focus:bg-white focus:outline-none"
-                />
-              </div>
+                <div>
+                  <label className="text-xs font-semibold text-slate-700">Confirm New PIN</label>
+                  <input
+                    type="password"
+                    maxLength={4}
+                    required
+                    placeholder="••••"
+                    value={confirmNewPin}
+                    onChange={(e) => setConfirmNewPin(e.target.value)}
+                    className="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-mono font-bold tracking-widest text-slate-800 focus:border-blue-500 focus:bg-white focus:outline-none"
+                  />
+                </div>
 
-              {pinError && <p className="text-xs font-semibold text-rose-500">{pinError}</p>}
-              {pinSuccess && <p className="text-xs font-semibold text-emerald-600">{pinSuccess}</p>}
+                {pinError && <p className="text-xs font-semibold text-rose-500">{pinError}</p>}
+                {pinSuccess && <p className="text-xs font-semibold text-emerald-600">{pinSuccess}</p>}
 
-              <button
-                type="submit"
-                className="rounded-xl bg-blue-600 px-5 py-2.5 text-xs font-semibold text-white shadow-md shadow-blue-600/30 hover:bg-blue-700 transition-all"
-              >
-                Update PIN
-              </button>
+                <button
+                  type="submit"
+                  className="rounded-xl bg-blue-600 px-5 py-2.5 text-xs font-semibold text-white shadow-md shadow-blue-600/30 hover:bg-blue-700 transition-all"
+                >
+                  Update PIN
+                </button>
+              </form>
 
               <div className="pt-4 border-t border-slate-200">
                 <h4 className="text-xs font-bold text-slate-900 mb-1">Session Security</h4>
@@ -365,10 +681,10 @@ export const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
                   <span>Lock App Now</span>
                 </button>
               </div>
-            </form>
+            </div>
           )}
 
-          {/* Tab 3: Supabase Sync */}
+          {/* TAB 4: SUPABASE DB */}
           {activeTab === 'supabase' && (
             <div className="space-y-4">
               <div className="rounded-2xl bg-blue-50/70 border border-blue-100 p-4">
@@ -390,10 +706,10 @@ export const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-slate-700">Supabase Anon Key</label>
+                <label className="text-xs font-semibold text-slate-700">Anon / Public API Key</label>
                 <input
                   type="password"
-                  placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                  placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI..."
                   value={supabaseKey}
                   onChange={(e) => setSupabaseKey(e.target.value)}
                   className="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-mono text-slate-800 focus:border-blue-500 focus:bg-white focus:outline-none"
@@ -402,129 +718,127 @@ export const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
 
               {dbStatus.message && (
                 <div
-                  className={`rounded-xl p-3 text-xs font-semibold ${
+                  className={`rounded-xl p-3 text-xs flex items-center gap-2 ${
                     dbStatus.success
                       ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
                       : 'bg-rose-50 text-rose-800 border border-rose-200'
                   }`}
                 >
-                  {dbStatus.message}
+                  {dbStatus.success ? <Check className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
+                  <span>{dbStatus.message}</span>
                 </div>
               )}
 
-              <div className="flex gap-2">
+              <div className="flex gap-2 pt-2">
                 <button
                   type="button"
                   disabled={testingDb}
                   onClick={handleTestSupabase}
-                  className="rounded-xl bg-blue-600 px-4 py-2.5 text-xs font-semibold text-white shadow-md shadow-blue-600/30 hover:bg-blue-700 disabled:opacity-50"
+                  className="rounded-xl bg-blue-600 px-5 py-2.5 text-xs font-semibold text-white shadow-md shadow-blue-600/30 hover:bg-blue-700 transition-all disabled:opacity-50"
                 >
-                  {testingDb ? 'Testing Connection...' : 'Test & Connect'}
+                  {testingDb ? 'Testing Connection...' : 'Test & Save Supabase'}
                 </button>
                 <button
                   type="button"
                   onClick={handleDownloadSchema}
-                  className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                  className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-all"
                 >
-                  <Download className="h-4 w-4" />
+                  <Download className="h-3.5 w-3.5 text-slate-500" />
                   <span>Download SQL Schema</span>
                 </button>
               </div>
             </div>
           )}
 
-          {/* Tab 4: AI Configuration */}
+          {/* TAB 5: AI CONFIGURATION */}
           {activeTab === 'ai' && (
             <form onSubmit={handleSaveAIKey} className="space-y-4">
-              <div className="rounded-2xl bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 p-4">
-                <h4 className="font-bold text-blue-900 text-xs">Google Gemini LLM Integration</h4>
+              <div className="rounded-2xl bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-100 p-4">
+                <h4 className="font-bold text-purple-900 text-xs">Google Gemini AI Engine</h4>
                 <p className="mt-1 text-xs text-slate-600 leading-relaxed">
-                  PocketZapp AI assistant currently runs with high accuracy using its built-in smart financial analysis engine. For conversational generative chat powered by Google Gemini, enter your Gemini API key below.
+                  PocketZapp AI includes a built-in Contextual Financial Intelligence Engine that analyzes your live numbers even without an external API. To enable real-time Gemini LLM generative advice, enter your Gemini API key.
                 </p>
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-slate-700">Google Gemini API Key</label>
+                <label className="text-xs font-semibold text-slate-700">Gemini API Key</label>
                 <input
                   type="password"
                   placeholder="AIzaSy..."
                   value={geminiKey}
                   onChange={(e) => setGeminiKey(e.target.value)}
-                  className="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-mono text-slate-800 focus:border-blue-500 focus:bg-white focus:outline-none"
+                  className="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-mono text-slate-800 focus:border-purple-500 focus:bg-white focus:outline-none"
                 />
               </div>
 
               {aiSuccess && (
-                <p className="text-xs font-semibold text-emerald-600">Gemini API Key saved!</p>
+                <div className="rounded-xl bg-emerald-50 border border-emerald-200 p-2.5 text-xs font-semibold text-emerald-800 flex items-center gap-1.5">
+                  <Check className="h-4 w-4" />
+                  <span>Gemini API Key updated successfully!</span>
+                </div>
               )}
 
-              <button
-                type="submit"
-                className="rounded-xl bg-blue-600 px-5 py-2.5 text-xs font-semibold text-white shadow-md shadow-blue-600/30 hover:bg-blue-700 transition-all"
-              >
-                Save AI Settings
-              </button>
+              <div className="pt-2">
+                <button
+                  type="submit"
+                  className="rounded-xl bg-purple-600 px-5 py-2.5 text-xs font-semibold text-white shadow-md shadow-purple-600/30 hover:bg-purple-700 transition-all"
+                >
+                  Save AI Configuration
+                </button>
+              </div>
             </form>
           )}
 
-          {/* Tab 5: Help & College Presentation FAQs */}
+          {/* TAB 6: HELP & DEMO GUIDANCE */}
           {activeTab === 'help' && (
-            <div className="space-y-3 text-xs text-slate-700">
-              <div className="rounded-2xl border border-slate-200/80 p-4 bg-slate-50/50">
-                <h4 className="font-bold text-slate-900 text-sm">College Project Demonstration Guide</h4>
-                <p className="mt-1 text-slate-500">
-                  PocketZapp AI is designed for seamless, impressive live evaluation:
-                </p>
-                <ul className="mt-2 list-disc list-inside space-y-1 text-slate-600">
-                  <li><strong>Security PIN:</strong> Secure Master PIN protection is active to guard wallet access.</li>
-                  <li><strong>OTP Verification:</strong> Whenever performing a Check Balance, Add Money, Transfer, or Checkout, simulated OTP codes are instantly provided on-screen with an "Auto-Fill" button.</li>
-                  <li><strong>Reset Demo Data:</strong> Use the "Reset Demo" button in the top navigation anytime to restore fresh sample balances and transactions.</li>
-                </ul>
+            <div className="space-y-4 text-xs">
+              <div className="rounded-2xl bg-slate-50 border border-slate-100 p-4">
+                <h4 className="font-bold text-slate-900 text-sm">Frequently Asked Questions</h4>
+                <div className="mt-3 space-y-3 divide-y divide-slate-100">
+                  <div className="pt-2">
+                    <p className="font-bold text-slate-800">Is this real banking money?</p>
+                    <p className="text-slate-500 mt-0.5">
+                      No. PocketZapp AI is built as a college demonstration sandbox. All currency values, top-ups, transfers, and budgets are simulated in INR (₹).
+                    </p>
+                  </div>
+                  <div className="pt-2">
+                    <p className="font-bold text-slate-800">How do I verify transfers & balance?</p>
+                    <p className="text-slate-500 mt-0.5">
+                      All transaction authorizations require your 4-digit Master Security PIN for verified zero-trust simulation.
+                    </p>
+                  </div>
+                  <div className="pt-2">
+                    <p className="font-bold text-slate-800">Where is data persisted?</p>
+                    <p className="text-slate-500 mt-0.5">
+                      All records are saved locally in your browser's persistent LocalStorage, with optional cloud sync to Supabase PostgreSQL.
+                    </p>
+                  </div>
+                </div>
               </div>
 
-              <div className="rounded-2xl border border-slate-200/80 p-4">
-                <h4 className="font-bold text-slate-900">Is real money used?</h4>
-                <p className="mt-0.5 text-slate-500">
-                  No. All transactions, cards, and balances operate strictly in simulated DEMO MODE as specified in the project requirements.
-                </p>
-              </div>
-
-              <div className="rounded-2xl border border-slate-200/80 p-4">
-                <h4 className="font-bold text-slate-900">How does the AI Assistant analyze data?</h4>
-                <p className="mt-0.5 text-slate-500">
-                  It inspects real-time state: calculating monthly outflows, inflow ratios, top spending categories, and goal velocities without fake responses.
-                </p>
+              <div className="rounded-2xl border border-amber-200/80 bg-amber-50/70 p-4 flex items-center justify-between">
+                <div>
+                  <h4 className="font-bold text-amber-900">Reset Demo Data</h4>
+                  <p className="text-[11px] text-amber-700 mt-0.5">
+                    Clear custom transactions and restore all original seed INR records.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onResetDemo();
+                    onClose();
+                  }}
+                  className="flex items-center gap-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white px-3 py-2 text-xs font-bold transition-all shadow-sm"
+                >
+                  <RotateCcw className="h-3.5 w-3.5" />
+                  <span>Reset All</span>
+                </button>
               </div>
             </div>
           )}
+
         </div>
-
-        {/* Bottom Actions: Reset Demo Data & Logout */}
-        <div className="flex items-center justify-between border-t border-slate-100 bg-slate-50/70 p-4 px-6">
-          <button
-            type="button"
-            onClick={() => {
-              if (confirm('Reset all demo data back to default values?')) {
-                onResetDemo();
-                onClose();
-              }
-            }}
-            className="flex items-center gap-1.5 text-xs font-semibold text-amber-700 hover:text-amber-900"
-          >
-            <RotateCcw className="h-3.5 w-3.5" />
-            <span>Reset Demo Data</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={onLogout}
-            className="flex items-center gap-1.5 rounded-xl bg-slate-900 px-4 py-2 text-xs font-semibold text-white hover:bg-slate-800 transition-colors"
-          >
-            <LogOut className="h-3.5 w-3.5" />
-            <span>Lock App / Logout</span>
-          </button>
-        </div>
-
       </div>
     </div>
   );

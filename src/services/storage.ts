@@ -35,6 +35,17 @@ export const DEFAULT_USER: UserProfile = {
   geminiApiKey: '',
   supabaseUrl: '',
   supabaseAnonKey: '',
+  // Linked Bank & Credit Card Details
+  bankName: 'HDFC Bank (Student Premium)',
+  bankAccountNumber: '•••• •••• 9841',
+  bankBalance: 142500,
+  bankIfsc: 'HDFC0001248',
+  creditCardHolder: 'JANVI MAUKA',
+  creditCardNumber: '4532 •••• •••• 5128',
+  creditCardExpiry: '08/29',
+  creditCardCvv: '842',
+  creditCardLimit: 200000,
+  creditCardAvailable: 165000,
 };
 
 // Initial Sample Transactions in INR (₹)
@@ -295,6 +306,19 @@ export const storageService = {
         // Ensure default currency is always INR (₹)
         parsed.currency = '₹';
         parsed.pin = '1507';
+        if (!parsed.bankName) {
+          parsed.bankName = DEFAULT_USER.bankName;
+          parsed.bankAccountNumber = DEFAULT_USER.bankAccountNumber;
+          parsed.bankBalance = DEFAULT_USER.bankBalance;
+          parsed.bankIfsc = DEFAULT_USER.bankIfsc;
+          parsed.creditCardHolder = DEFAULT_USER.creditCardHolder;
+          parsed.creditCardNumber = DEFAULT_USER.creditCardNumber;
+          parsed.creditCardExpiry = DEFAULT_USER.creditCardExpiry;
+          parsed.creditCardCvv = DEFAULT_USER.creditCardCvv;
+          parsed.creditCardLimit = DEFAULT_USER.creditCardLimit;
+          parsed.creditCardAvailable = DEFAULT_USER.creditCardAvailable;
+          this.saveUser(parsed);
+        }
         return parsed;
       }
     } catch (e) {

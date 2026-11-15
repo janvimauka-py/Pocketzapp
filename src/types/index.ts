@@ -67,6 +67,17 @@ export interface UserProfile {
   geminiApiKey?: string;
   supabaseUrl?: string;
   supabaseAnonKey?: string;
+  // Linked Bank & Credit Card Details
+  bankName?: string;
+  bankAccountNumber?: string;
+  bankBalance?: number;
+  bankIfsc?: string;
+  creditCardHolder?: string;
+  creditCardNumber?: string;
+  creditCardExpiry?: string;
+  creditCardCvv?: string;
+  creditCardLimit?: number;
+  creditCardAvailable?: number;
 }
 
 export interface AppNotification {
