@@ -11,10 +11,16 @@ import {
   ArrowDownLeft, 
   Calculator, 
   Trophy, 
+  Smartphone,
   Laptop, 
   Plane, 
   Shield, 
   Gamepad2, 
+  Car,
+  GraduationCap,
+  Watch,
+  Heart,
+  Camera,
   Target, 
   X, 
   CheckCircle2 
@@ -50,8 +56,9 @@ export const SavingsManager: React.FC<SavingsManagerProps> = ({
   const [newGoalTarget, setNewGoalTarget] = useState<string>('');
   const [newGoalInitial, setNewGoalInitial] = useState<string>('0');
   const [newGoalDate, setNewGoalDate] = useState<string>('2027-04-30');
-  const [newGoalCategory, setNewGoalCategory] = useState<string>('Education');
-  const [newGoalIcon, setNewGoalIcon] = useState<string>('Laptop');
+  const [newGoalCategory, setNewGoalCategory] = useState<string>('Technology');
+  const [newGoalIcon, setNewGoalIcon] = useState<string>('Smartphone');
+  const [newGoalImage, setNewGoalImage] = useState<string>('');
 
   // Calculator state
   const [calcTarget, setCalcTarget] = useState<string>('50000');
@@ -64,11 +71,38 @@ export const SavingsManager: React.FC<SavingsManagerProps> = ({
 
   const getIconComponent = (iconName: string) => {
     switch (iconName) {
+      case 'Smartphone': return Smartphone;
       case 'Laptop': return Laptop;
       case 'Plane': return Plane;
       case 'Shield': return Shield;
       case 'Gamepad2': return Gamepad2;
+      case 'Car': return Car;
+      case 'GraduationCap': return GraduationCap;
+      case 'Watch': return Watch;
+      case 'Heart': return Heart;
+      case 'Camera': return Camera;
       default: return Target;
+    }
+  };
+
+  const getPresetImageForIcon = (icon: string) => {
+    switch (icon) {
+      case 'Smartphone':
+        return 'https://images.unsplash.com/photo-1695048133142-1a20484d2569?auto=format&fit=crop&w=800&q=80';
+      case 'Laptop':
+        return 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?auto=format&fit=crop&w=800&q=80';
+      case 'Gamepad2':
+        return 'https://images.unsplash.com/photo-1606813907291-d86efa9b94db?auto=format&fit=crop&w=800&q=80';
+      case 'Plane':
+        return 'https://images.unsplash.com/photo-1436491865332-7a61a109cc05?auto=format&fit=crop&w=800&q=80';
+      case 'Shield':
+        return 'https://images.unsplash.com/photo-1589758438368-0ad531db3366?auto=format&fit=crop&w=800&q=80';
+      case 'GraduationCap':
+        return 'https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=800&q=80';
+      case 'Car':
+        return 'https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=800&q=80';
+      default:
+        return 'https://images.unsplash.com/photo-1579621970563-ebec7560ff3e?auto=format&fit=crop&w=800&q=80';
     }
   };
 
@@ -93,6 +127,7 @@ export const SavingsManager: React.FC<SavingsManagerProps> = ({
       icon: newGoalIcon,
       color: 'from-blue-600 to-indigo-600',
       createdAt: new Date().toISOString(),
+      imageUrl: newGoalImage.trim() || getPresetImageForIcon(newGoalIcon),
     };
 
     if (initial > 0) {
@@ -269,95 +304,120 @@ export const SavingsManager: React.FC<SavingsManagerProps> = ({
           return (
             <div
               key={goal.id}
-              className="group relative flex flex-col justify-between overflow-hidden rounded-3xl border border-slate-200/80 bg-white p-6 shadow-md shadow-slate-200/50 transition-all hover:shadow-xl hover:border-blue-200"
+              className="group relative flex flex-col justify-between overflow-hidden rounded-3xl border border-slate-200/80 bg-white shadow-md shadow-slate-200/50 transition-all hover:shadow-xl hover:border-blue-200"
             >
-              <div>
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-50 text-blue-600 border border-blue-100 group-hover:scale-105 transition-transform">
-                      <Icon className="h-6 w-6" />
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <h3 className="font-bold text-slate-900 text-base">{goal.name}</h3>
-                        {isDone && (
-                          <span className="flex items-center gap-1 rounded-full bg-emerald-50 border border-emerald-200 px-2 py-0.5 text-[10px] font-bold text-emerald-700">
-                            <CheckCircle2 className="h-3 w-3" /> Completed!
-                          </span>
-                        )}
+              {/* Realistic High-Definition Product Photo Banner */}
+              {goal.imageUrl && (
+                <div className="relative h-44 w-full overflow-hidden bg-slate-900">
+                  <img
+                    src={goal.imageUrl}
+                    alt={goal.name}
+                    className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
+                    loading="lazy"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-slate-950/20 to-transparent" />
+                  <div className="absolute top-3 left-3 flex items-center gap-1.5 rounded-full bg-slate-900/70 px-3 py-1 backdrop-blur-md border border-white/20 text-white text-[11px] font-semibold">
+                    <Icon className="h-3.5 w-3.5 text-blue-400" />
+                    <span>{goal.category}</span>
+                  </div>
+                  <div className="absolute bottom-3 left-4 right-4 flex items-end justify-between text-white">
+                    <span className="text-xs font-medium text-slate-200">Target Vault</span>
+                    <span className="text-sm font-black text-white drop-shadow-md">
+                      {currency}{goal.targetAmount.toLocaleString()}
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              <div className="p-6 flex-1 flex flex-col justify-between">
+                <div>
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-50 text-blue-600 border border-blue-100 group-hover:scale-105 transition-transform shrink-0">
+                        <Icon className="h-6 w-6" />
                       </div>
-                      <p className="text-xs text-slate-400 flex items-center gap-1 mt-0.5">
-                        <Calendar className="h-3 w-3" />
-                        Target: {new Date(goal.targetDate).toLocaleDateString()}
-                      </p>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h3 className="font-bold text-slate-900 text-base">{goal.name}</h3>
+                          {isDone && (
+                            <span className="flex items-center gap-1 rounded-full bg-emerald-50 border border-emerald-200 px-2 py-0.5 text-[10px] font-bold text-emerald-700">
+                              <CheckCircle2 className="h-3 w-3" /> Completed!
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs text-slate-400 flex items-center gap-1 mt-0.5">
+                          <Calendar className="h-3 w-3" />
+                          Target: {new Date(goal.targetDate).toLocaleDateString()}
+                        </p>
+                      </div>
                     </div>
+
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteGoal(goal.id)}
+                      className="flex h-8 w-8 items-center justify-center rounded-xl text-slate-400 hover:bg-rose-50 hover:text-rose-500 transition-colors"
+                      title="Delete Goal"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
                   </div>
 
+                  {/* Amount and percentage */}
+                  <div className="mt-5 flex items-baseline justify-between">
+                    <div>
+                      <span className="text-2xl font-black text-slate-900">
+                        {currency}{goal.currentAmount.toFixed(2)}
+                      </span>
+                      <span className="text-xs text-slate-400 ml-1.5">
+                        / {currency}{goal.targetAmount.toFixed(2)}
+                      </span>
+                    </div>
+                    <span className={`text-sm font-extrabold ${isDone ? 'text-emerald-600' : 'text-blue-600'}`}>
+                      {pct}%
+                    </span>
+                  </div>
+
+                  {/* Progress bar */}
+                  <div className="mt-2.5 h-2.5 w-full overflow-hidden rounded-full bg-slate-100">
+                    <div
+                      className={`h-full rounded-full transition-all duration-700 ${
+                        isDone
+                          ? 'bg-emerald-500'
+                          : pct >= 75
+                          ? 'bg-blue-600'
+                          : 'bg-gradient-to-r from-blue-500 to-indigo-500'
+                      }`}
+                      style={{ width: `${pct}%` }}
+                    />
+                  </div>
+
+                  <div className="mt-2 text-right">
+                    <span className="text-[11px] font-medium text-slate-500">
+                      {isDone ? 'Goal fully achieved!' : `${currency}${remaining.toFixed(2)} remaining`}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Action Buttons: Add Money to Goal / Withdraw */}
+                <div className="mt-5 flex items-center gap-2 border-t border-slate-100 pt-4">
                   <button
                     type="button"
-                    onClick={() => handleDeleteGoal(goal.id)}
-                    className="flex h-8 w-8 items-center justify-center rounded-xl text-slate-400 hover:bg-rose-50 hover:text-rose-500 transition-colors"
-                    title="Delete Goal"
+                    onClick={() => handleOpenTransfer(goal, 'deposit')}
+                    className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 py-2.5 text-xs font-bold text-blue-700 transition-colors"
                   >
-                    <Trash2 className="h-4 w-4" />
+                    <ArrowDownLeft className="h-3.5 w-3.5 text-blue-600" />
+                    <span>Deposit Funds</span>
+                  </button>
+                  <button
+                    type="button"
+                    disabled={goal.currentAmount <= 0}
+                    onClick={() => handleOpenTransfer(goal, 'withdraw')}
+                    className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 py-2.5 text-xs font-bold text-slate-600 disabled:opacity-40 transition-colors"
+                  >
+                    <ArrowUpRight className="h-3.5 w-3.5 text-slate-500" />
+                    <span>Withdraw</span>
                   </button>
                 </div>
-
-                {/* Amount and percentage */}
-                <div className="mt-5 flex items-baseline justify-between">
-                  <div>
-                    <span className="text-2xl font-black text-slate-900">
-                      {currency}{goal.currentAmount.toFixed(2)}
-                    </span>
-                    <span className="text-xs text-slate-400 ml-1.5">
-                      / {currency}{goal.targetAmount.toFixed(2)}
-                    </span>
-                  </div>
-                  <span className={`text-sm font-extrabold ${isDone ? 'text-emerald-600' : 'text-blue-600'}`}>
-                    {pct}%
-                  </span>
-                </div>
-
-                {/* Progress bar */}
-                <div className="mt-2.5 h-2.5 w-full overflow-hidden rounded-full bg-slate-100">
-                  <div
-                    className={`h-full rounded-full transition-all duration-700 ${
-                      isDone
-                        ? 'bg-emerald-500'
-                        : pct >= 75
-                        ? 'bg-blue-600'
-                        : 'bg-gradient-to-r from-blue-500 to-indigo-500'
-                    }`}
-                    style={{ width: `${pct}%` }}
-                  />
-                </div>
-
-                <div className="mt-2 text-right">
-                  <span className="text-[11px] font-medium text-slate-500">
-                    {isDone ? 'Goal fully achieved!' : `${currency}${remaining.toFixed(2)} remaining`}
-                  </span>
-                </div>
-              </div>
-
-              {/* Action Buttons: Add Money to Goal / Withdraw */}
-              <div className="mt-5 flex items-center gap-2 border-t border-slate-100 pt-4">
-                <button
-                  type="button"
-                  onClick={() => handleOpenTransfer(goal, 'deposit')}
-                  className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 py-2.5 text-xs font-bold text-blue-700 transition-colors"
-                >
-                  <ArrowDownLeft className="h-3.5 w-3.5 text-blue-600" />
-                  <span>Deposit Funds</span>
-                </button>
-                <button
-                  type="button"
-                  disabled={goal.currentAmount <= 0}
-                  onClick={() => handleOpenTransfer(goal, 'withdraw')}
-                  className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 py-2.5 text-xs font-bold text-slate-600 disabled:opacity-40 transition-colors"
-                >
-                  <ArrowUpRight className="h-3.5 w-3.5 text-slate-500" />
-                  <span>Withdraw</span>
-                </button>
               </div>
             </div>
           );
@@ -519,13 +579,28 @@ export const SavingsManager: React.FC<SavingsManagerProps> = ({
                     onChange={(e) => setNewGoalIcon(e.target.value)}
                     className="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-800 focus:border-blue-500 focus:bg-white focus:outline-none"
                   >
-                    <option value="Laptop">Laptop / Tech</option>
+                    <option value="Smartphone">Smartphone (iPhone 19 / Mobile)</option>
+                    <option value="Laptop">Laptop / MacBook</option>
+                    <option value="Gamepad2">Gaming / PlayStation 5</option>
+                    <option value="Shield">Emergency / Health Fund</option>
                     <option value="Plane">Travel / Trip</option>
-                    <option value="Shield">Emergency / Health</option>
-                    <option value="Gamepad2">Gaming / Fun</option>
+                    <option value="GraduationCap">Education / College</option>
+                    <option value="Car">Vehicle / Commute</option>
+                    <option value="Camera">Photography / Creative</option>
                     <option value="Target">General Goal</option>
                   </select>
                 </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-slate-700">Realistic Photo Banner URL (Optional)</label>
+                <input
+                  type="url"
+                  placeholder="Leave empty for realistic preset photo"
+                  value={newGoalImage}
+                  onChange={(e) => setNewGoalImage(e.target.value)}
+                  className="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-800 focus:border-blue-500 focus:bg-white focus:outline-none"
+                />
               </div>
 
               <div className="mt-4 flex gap-2">

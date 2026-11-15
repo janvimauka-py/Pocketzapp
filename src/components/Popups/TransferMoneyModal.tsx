@@ -22,8 +22,8 @@ export const TransferMoneyModal: React.FC<TransferMoneyModalProps> = ({
   onSuccess,
   onClose,
 }) => {
-  const [recipientName, setRecipientName] = useState<string>('Udit');
-  const [recipientId, setRecipientId] = useState<string>('udit@okhdfcbank');
+  const [recipientName, setRecipientName] = useState<string>('Rishabh');
+  const [recipientId, setRecipientId] = useState<string>('rishabh@okhdfcbank');
   const [amount, setAmount] = useState<string>('1500');
   const [note, setNote] = useState<string>('Split dinner & rides');
   const [step, setStep] = useState<'form' | 'review' | 'otp'>('form');
@@ -131,7 +131,7 @@ export const TransferMoneyModal: React.FC<TransferMoneyModalProps> = ({
 
             {step === 'form' && (
               <form onSubmit={handleProceedToReview} className="mt-5 space-y-4">
-                {/* Transfer Money to Contact (No DP - Just Names: Udit, Anvay, Aarvi, Jerry) */}
+                {/* Transfer Money to Contact (No DP - Just Names: Rishabh, Anvay, Aarvi, Jerry) */}
                 <div>
                   <div className="flex items-center justify-between">
                     <label className="block text-xs font-bold text-slate-800">
@@ -174,7 +174,7 @@ export const TransferMoneyModal: React.FC<TransferMoneyModalProps> = ({
                       required
                       value={recipientName}
                       onChange={(e) => setRecipientName(e.target.value)}
-                      placeholder="e.g. Udit"
+                      placeholder="e.g. Rishabh"
                       className="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-800 focus:border-indigo-500 focus:bg-white focus:outline-none"
                     />
                   </div>
@@ -185,7 +185,7 @@ export const TransferMoneyModal: React.FC<TransferMoneyModalProps> = ({
                       required
                       value={recipientId}
                       onChange={(e) => setRecipientId(e.target.value)}
-                      placeholder="e.g. udit@okhdfcbank"
+                      placeholder="e.g. rishabh@okhdfcbank"
                       className="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-800 focus:border-indigo-500 focus:bg-white focus:outline-none"
                     />
                   </div>

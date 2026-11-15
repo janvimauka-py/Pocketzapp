@@ -35,6 +35,7 @@ export interface SavingsGoal {
   icon: string;
   color: string;
   createdAt: string;
+  imageUrl?: string;
 }
 
 export interface Budget {

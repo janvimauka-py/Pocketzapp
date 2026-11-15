@@ -168,17 +168,19 @@ export const INITIAL_SAVINGS_GOALS: SavingsGoal[] = [
     icon: 'Laptop',
     color: 'from-blue-600 to-indigo-600',
     createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 40).toISOString(),
+    imageUrl: 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?auto=format&fit=crop&w=800&q=80',
   },
   {
     id: 'goal_002',
-    name: 'New Phone (iPhone 16)',
-    targetAmount: 79000,
-    currentAmount: 52000,
+    name: 'New Phone (iPhone 19 Pro Max)',
+    targetAmount: 89000,
+    currentAmount: 58000,
     targetDate: '2027-01-20',
-    category: 'Education',
+    category: 'Technology',
     icon: 'Smartphone',
     color: 'from-cyan-500 to-blue-600',
     createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 25).toISOString(),
+    imageUrl: 'https://images.unsplash.com/photo-1695048133142-1a20484d2569?auto=format&fit=crop&w=800&q=80',
   },
   {
     id: 'goal_003',
@@ -190,6 +192,7 @@ export const INITIAL_SAVINGS_GOALS: SavingsGoal[] = [
     icon: 'Shield',
     color: 'from-emerald-500 to-teal-600',
     createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 60).toISOString(),
+    imageUrl: 'https://images.unsplash.com/photo-1589758438368-0ad531db3366?auto=format&fit=crop&w=800&q=80',
   },
   {
     id: 'goal_004',
@@ -201,6 +204,7 @@ export const INITIAL_SAVINGS_GOALS: SavingsGoal[] = [
     icon: 'Gamepad2',
     color: 'from-purple-600 to-pink-600',
     createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 15).toISOString(),
+    imageUrl: 'https://images.unsplash.com/photo-1606813907291-d86efa9b94db?auto=format&fit=crop&w=800&q=80',
   }
 ];
 
@@ -240,7 +244,7 @@ export const INITIAL_NOTIFICATIONS: AppNotification[] = [
   {
     id: 'notif_002',
     title: 'Savings Goal Milestone!',
-    message: 'Awesome progress! "New Phone (iPhone 16)" is now 66% funded (₹52,000 / ₹79,000).',
+    message: 'Awesome progress! "New Phone (iPhone 19 Pro Max)" is now 65% funded (₹58,000 / ₹89,000).',
     type: 'savings',
     timestamp: new Date(Date.now() - 1000 * 60 * 60 * 5).toISOString(),
     read: false,
@@ -264,12 +268,12 @@ export const INITIAL_NOTIFICATIONS: AppNotification[] = [
   }
 ];
 
-// Recent Contacts for Fast Peer Transfers (No DP - Just Names: Udit, Anvay, Aarvi, Jerry)
+// Recent Contacts for Fast Peer Transfers (No DP - Just Names: Rishabh, Anvay, Aarvi, Jerry)
 export const INITIAL_CONTACTS: RecentContact[] = [
   {
     id: 'cnt_001',
-    name: 'Udit',
-    identifier: 'udit@okhdfcbank',
+    name: 'Rishabh',
+    identifier: 'rishabh@okhdfcbank',
     avatar: '',
     type: 'friend'
   },
@@ -351,15 +355,39 @@ export const storageService = {
     try {
       const data = localStorage.getItem(STORAGE_KEYS.SAVINGS_GOALS);
       if (data) {
-        const parsed: SavingsGoal[] = JSON.parse(data);
-        // Automatically purge any legacy Goa trip goal and ensure New Phone goal is loaded
+        let parsed: SavingsGoal[] = JSON.parse(data);
+        let updated = false;
+
+        // Automatically purge any legacy Goa trip goal and ensure New Phone (iPhone 19 Pro Max) is loaded
         const hasGoa = parsed.some((g) => g.name.toLowerCase().includes('goa'));
         if (hasGoa) {
-          const cleaned = parsed
-            .filter((g) => !g.name.toLowerCase().includes('goa'))
-            .concat(INITIAL_SAVINGS_GOALS.filter((g) => g.id === 'goal_002'));
-          this.saveSavingsGoals(cleaned);
-          return cleaned;
+          parsed = parsed.filter((g) => !g.name.toLowerCase().includes('goa'));
+          updated = true;
+        }
+
+        // Migrate iPhone 16 -> iPhone 19 Pro Max with realistic image
+        parsed = parsed.map((g) => {
+          if (g.name.includes('iPhone 16') || g.id === 'goal_002') {
+            updated = true;
+            return {
+              ...g,
+              name: 'New Phone (iPhone 19 Pro Max)',
+              icon: 'Smartphone',
+              imageUrl: 'https://images.unsplash.com/photo-1695048133142-1a20484d2569?auto=format&fit=crop&w=800&q=80',
+            };
+          }
+          if (!g.imageUrl) {
+            const initialMatch = INITIAL_SAVINGS_GOALS.find((ig) => ig.id === g.id || ig.icon === g.icon);
+            if (initialMatch?.imageUrl) {
+              updated = true;
+              return { ...g, imageUrl: initialMatch.imageUrl };
+            }
+          }
+          return g;
+        });
+
+        if (updated) {
+          this.saveSavingsGoals(parsed);
         }
         return parsed;
       }
@@ -408,10 +436,21 @@ export const storageService = {
     try {
       const data = localStorage.getItem(STORAGE_KEYS.CONTACTS);
       if (data) {
-        const parsed: RecentContact[] = JSON.parse(data);
-        // Ensure contacts list reflects Udit, Anvay, Aarvi, Jerry
+        let parsed: RecentContact[] = JSON.parse(data);
+        let updated = false;
+
+        // Ensure Udit is replaced by Rishabh
+        parsed = parsed.map((c) => {
+          if (c.name.toLowerCase() === 'udit' || c.identifier.toLowerCase().includes('udit')) {
+            updated = true;
+            return { ...c, name: 'Rishabh', identifier: 'rishabh@okhdfcbank' };
+          }
+          return c;
+        });
+
         const names = parsed.map((c) => c.name);
-        if (names.includes('Udit') && names.includes('Anvay')) {
+        if (names.includes('Rishabh') && names.includes('Anvay')) {
+          if (updated) this.saveContacts(parsed);
           return parsed;
         }
       }

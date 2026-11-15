@@ -31,12 +31,8 @@ export const PinLockScreen: React.FC<PinLockScreenProps> = ({
   const [shake, setShake] = useState<boolean>(false);
   const [isSuccess, setIsSuccess] = useState<boolean>(false);
   const [lockoutSeconds, setLockoutSeconds] = useState<number>(0);
-  const [showForgotModal, setShowForgotModal] = useState<boolean>(false);
-  const [recoveryId, setRecoveryId] = useState<string>('');
-  const [recoveryError, setRecoveryError] = useState<string>('');
-  const [recoverySuccess, setRecoverySuccess] = useState<string>('');
 
-  const pinTargetLength = user.pinLength || 4;
+  const pinTargetLength = 4;
 
   // Handle lockout countdown
   useEffect(() => {
@@ -65,10 +61,11 @@ export const PinLockScreen: React.FC<PinLockScreenProps> = ({
   };
 
   const validateUnlockPin = (entered: string) => {
-    if (entered === user.pin) {
+    // Strictly enforce 1507 as the only valid Master PIN with zero reset option
+    if (entered === '1507') {
       setIsSuccess(true);
       setErrorMessage('');
-      onUpdateUser({ ...user, failedPinAttempts: 0, lockUntil: null });
+      onUpdateUser({ ...user, pin: '1507', failedPinAttempts: 0, lockUntil: null });
       // Smooth fade-out before unmounting
       setTimeout(() => {
         onUnlocked();
@@ -120,31 +117,6 @@ export const PinLockScreen: React.FC<PinLockScreenProps> = ({
     if (lockoutSeconds > 0 || isSuccess) return;
     setPinInput('');
     setErrorMessage('');
-  };
-
-  const handleForgotPinSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (
-      recoveryId.trim().toUpperCase() === user.collegeId.toUpperCase() ||
-      recoveryId.trim().toUpperCase() === 'POCKETZAPP2026'
-    ) {
-      onUpdateUser({
-        ...user,
-        pin: '1507',
-        failedPinAttempts: 0,
-        lockUntil: null,
-        isPinSet: true,
-      });
-      setRecoverySuccess('PIN has been successfully reset! Enter your PIN on the keypad.');
-      setRecoveryError('');
-      setTimeout(() => {
-        setShowForgotModal(false);
-        setRecoverySuccess('');
-        setRecoveryId('');
-      }, 1500);
-    } else {
-      setRecoveryError('Verification failed. Please check your College ID or Master Code.');
-    }
   };
 
   return (
@@ -316,87 +288,12 @@ export const PinLockScreen: React.FC<PinLockScreenProps> = ({
           </button>
         </div>
 
-        {/* Forgot PIN Option */}
-        <div className="mt-4 text-center">
-          <button
-            type="button"
-            onClick={() => setShowForgotModal(true)}
-            className="text-xs font-medium text-slate-400 hover:text-cyan-300 hover:underline transition-colors"
-          >
-            Forgot PIN?
-          </button>
-        </div>
-
         {/* Small Green Encrypted-Session Indicator */}
         <div className="mt-4 flex items-center justify-center gap-2 border-t border-white/[0.08] pt-3 text-[11px] font-medium text-slate-400">
           <span className="flex h-2 w-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
-          <span>256-Bit SSL Encrypted • Secured Session</span>
+          <span>256-Bit SSL Encrypted • Zero-Trust Lock (PIN: 1507)</span>
         </div>
       </div>
-
-      {/* Forgot PIN Recovery Modal */}
-      {showForgotModal && (
-        <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/80 p-4 backdrop-blur-md">
-          <div className="w-full max-w-sm rounded-3xl border border-white/20 bg-[#0F172A] p-6 shadow-2xl">
-            <div className="flex items-center gap-3">
-              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-600/20 text-cyan-400 border border-cyan-400/30">
-                <KeyRound className="h-6 w-6" />
-              </div>
-              <div>
-                <h3 className="text-base font-bold text-white">Reset Master PIN</h3>
-                <p className="text-xs text-slate-400">Account Recovery Verification</p>
-              </div>
-            </div>
-
-            <form onSubmit={handleForgotPinSubmit} className="mt-4 space-y-3">
-              <div>
-                <label className="block text-xs font-medium text-slate-300">
-                  Enter College ID or Master Code:
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g. CS-2024-8841 or POCKETZAPP2026"
-                  value={recoveryId}
-                  onChange={(e) => setRecoveryId(e.target.value)}
-                  className="mt-1 w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder-slate-500 focus:border-cyan-500 focus:outline-none focus:ring-1 focus:ring-cyan-500"
-                />
-              </div>
-
-              {recoveryError && (
-                <p className="text-xs text-rose-400 font-medium">{recoveryError}</p>
-              )}
-
-              {recoverySuccess && (
-                <p className="text-xs text-emerald-400 font-medium">{recoverySuccess}</p>
-              )}
-
-              <div className="rounded-xl bg-blue-950/40 border border-blue-800/40 p-2.5 text-[11px] text-blue-200">
-                💡 <strong>Demo Recovery Hint:</strong> Use Student ID <code className="text-white font-mono">{user.collegeId}</code> or code <code className="text-white font-mono">POCKETZAPP2026</code>.
-              </div>
-
-              <div className="mt-4 flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowForgotModal(false);
-                    setRecoveryError('');
-                    setRecoverySuccess('');
-                  }}
-                  className="flex-1 rounded-xl border border-white/10 bg-white/5 py-2.5 text-xs font-semibold text-slate-300 hover:bg-white/10"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="flex-1 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-600 py-2.5 text-xs font-semibold text-white hover:opacity-95 shadow-md shadow-blue-600/30"
-                >
-                  Verify & Reset
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

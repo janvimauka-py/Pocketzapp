@@ -155,7 +155,7 @@ export const HomeWalletView: React.FC<HomeWalletViewProps> = ({
         </div>
       </section>
 
-      {/* 2B. TRANSFER MONEY TO CONTACT (No DP - Just Names: Udit, Anvay, Aarvi, Jerry) */}
+      {/* 2B. TRANSFER MONEY TO CONTACT (No DP - Just Names: Rishabh, Anvay, Aarvi, Jerry) */}
       <section className="rounded-3xl border border-slate-200/80 bg-white p-5 sm:p-6 shadow-xs">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
           <div className="flex items-center gap-3">
@@ -186,7 +186,7 @@ export const HomeWalletView: React.FC<HomeWalletViewProps> = ({
           </button>
         </div>
 
-        {/* 4 Contact Cards - No DP, Just Names: Udit, Anvay, Aarvi, Jerry */}
+        {/* 4 Contact Cards - No DP, Just Names: Rishabh, Anvay, Aarvi, Jerry */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {contacts.map((contact) => (
             <button
@@ -314,7 +314,7 @@ export const HomeWalletView: React.FC<HomeWalletViewProps> = ({
                 🎯 Vault Velocity High
               </span>
               <p className="mt-1 text-slate-600 text-[11px] leading-relaxed">
-                "New Phone (iPhone 16)" is 66% funded! Deposit {currency}5,000 more to achieve 100% completion ahead of semester end.
+                "New Phone (iPhone 19 Pro Max)" is 65% funded! Deposit {currency}5,000 more to achieve 100% completion ahead of semester end.
               </p>
             </div>
           </div>
