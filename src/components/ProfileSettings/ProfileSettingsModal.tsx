@@ -12,7 +12,8 @@ import {
   Download, 
   RotateCcw,
   CheckCircle2,
-  ExternalLink
+  ExternalLink,
+  Lock
 } from 'lucide-react';
 import { UserProfile } from '../../types';
 import { testSupabaseConnection, SUPABASE_SQL_SCHEMA } from '../../services/supabase';
@@ -348,6 +349,22 @@ export const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
               >
                 Update PIN
               </button>
+
+              <div className="pt-4 border-t border-slate-200">
+                <h4 className="text-xs font-bold text-slate-900 mb-1">Session Security</h4>
+                <p className="text-xs text-slate-500 mb-2.5">Lock your app immediately to engage the full-screen PIN security overlay.</p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onClose();
+                    onLogout();
+                  }}
+                  className="flex items-center gap-1.5 rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-2 text-xs font-bold text-rose-700 hover:bg-rose-100 transition-all"
+                >
+                  <Lock className="h-3.5 w-3.5" />
+                  <span>Lock App Now</span>
+                </button>
+              </div>
             </form>
           )}
 

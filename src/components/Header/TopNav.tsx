@@ -7,7 +7,8 @@ import {
   Menu, 
   Check, 
   ShieldCheck,
-  PieChart 
+  PieChart,
+  Lock 
 } from 'lucide-react';
 import { UserProfile, AppNotification } from '../../types';
 
@@ -20,6 +21,7 @@ interface TopNavProps {
   onOpenSettings: () => void;
   onOpenAI: () => void;
   onOpenBudgetModal?: () => void;
+  onLockApp?: () => void;
   onResetDemo: () => void;
   onUpdateUser: (updatedUser: UserProfile) => void;
 }
@@ -33,6 +35,7 @@ export const TopNav: React.FC<TopNavProps> = ({
   onOpenSettings,
   onOpenAI,
   onOpenBudgetModal,
+  onLockApp,
   onResetDemo,
   onUpdateUser,
 }) => {
@@ -191,6 +194,20 @@ export const TopNav: React.FC<TopNavProps> = ({
           >
             <Settings className="h-4 w-4" />
           </button>
+
+          {/* Manual Lock App Button */}
+          {onLockApp && (
+            <button
+              type="button"
+              onClick={onLockApp}
+              title="Lock App (Security PIN Overlay)"
+              className="flex h-9 items-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 px-2.5 text-xs font-bold text-slate-700 shadow-xs hover:bg-rose-50 hover:text-rose-600 hover:border-rose-200 transition-all"
+              aria-label="Lock App"
+            >
+              <Lock className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Lock</span>
+            </button>
+          )}
 
         </div>
       </div>

@@ -77,6 +77,30 @@ export function App() {
     }
   }, [isUnlocked]);
 
+  // Inactivity Auto-Lock (Locks app after 3 minutes of idle time)
+  useEffect(() => {
+    if (!isUnlocked) return;
+
+    let timeoutId: any;
+
+    const resetInactivityTimer = () => {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => {
+        setIsUnlocked(false);
+      }, 3 * 60 * 1000);
+    };
+
+    const events = ['mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll'];
+    events.forEach((ev) => window.addEventListener(ev, resetInactivityTimer));
+
+    resetInactivityTimer();
+
+    return () => {
+      clearTimeout(timeoutId);
+      events.forEach((ev) => window.removeEventListener(ev, resetInactivityTimer));
+    };
+  }, [isUnlocked]);
+
   // Sync state to LocalStorage
   useEffect(() => {
     storageService.saveUser(user);
@@ -184,20 +208,16 @@ export function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] text-slate-800 antialiased selection:bg-blue-600 selection:text-white">
+    <div className="relative min-h-screen bg-[#070B14] text-slate-800 antialiased selection:bg-blue-600 selection:text-white overflow-x-hidden">
       
-      {/* 1. App Opening PIN Screen */}
-      {!isUnlocked && (
-        <PinLockScreen
-          user={user}
-          onUnlocked={() => setIsUnlocked(true)}
-          onUpdateUser={(updated) => setUser(updated)}
-        />
-      )}
-
-      {/* Main Authenticated Dashboard */}
-      {isUnlocked && (
-        <div className="flex min-h-screen bg-[#F1F5F9]">
+      {/* Actual Website Dashboard (Always Loaded in Background, Blurred when Locked) */}
+      <div 
+        className={`flex min-h-screen bg-[#F1F5F9] transition-all duration-700 ease-in-out ${
+          !isUnlocked 
+            ? 'filter blur-[14px] brightness-[0.5] pointer-events-none select-none max-h-screen overflow-hidden' 
+            : 'filter blur-0 brightness-100'
+        }`}
+      >
           
           {/* Permanent Left Sidebar with All Pages Listed */}
           <LeftSidebar
@@ -233,6 +253,7 @@ export function App() {
               onOpenSettings={() => setShowSettingsModal(true)}
               onOpenAI={() => setShowAIDrawer(true)}
               onOpenBudgetModal={() => setShowBudgetPopup(true)}
+              onLockApp={() => setIsUnlocked(false)}
               onResetDemo={handleResetDemoData}
               onUpdateUser={(updated) => setUser(updated)}
             />
@@ -507,6 +528,14 @@ export function App() {
           )}
 
         </div>
+
+      {/* Premium Full-Screen PIN Security Overlay */}
+      {!isUnlocked && (
+        <PinLockScreen
+          user={user}
+          onUnlocked={() => setIsUnlocked(true)}
+          onUpdateUser={(updated) => setUser(updated)}
+        />
       )}
 
     </div>
