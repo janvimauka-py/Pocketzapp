@@ -160,13 +160,13 @@ export const INITIAL_SAVINGS_GOALS: SavingsGoal[] = [
   },
   {
     id: 'goal_002',
-    name: 'Goa College Roadtrip',
-    targetAmount: 25000,
-    currentAmount: 18500,
-    targetDate: '2026-12-25',
-    category: 'Travel',
-    icon: 'Plane',
-    color: 'from-amber-500 to-rose-500',
+    name: 'New Phone (iPhone 16)',
+    targetAmount: 79000,
+    currentAmount: 52000,
+    targetDate: '2027-01-20',
+    category: 'Education',
+    icon: 'Smartphone',
+    color: 'from-cyan-500 to-blue-600',
     createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 25).toISOString(),
   },
   {
@@ -229,7 +229,7 @@ export const INITIAL_NOTIFICATIONS: AppNotification[] = [
   {
     id: 'notif_002',
     title: 'Savings Goal Milestone!',
-    message: 'Awesome progress! "Goa College Roadtrip" is now 74% funded (₹18,500 / ₹25,000).',
+    message: 'Awesome progress! "New Phone (iPhone 16)" is now 66% funded (₹52,000 / ₹79,000).',
     type: 'savings',
     timestamp: new Date(Date.now() - 1000 * 60 * 60 * 5).toISOString(),
     read: false,
@@ -326,7 +326,19 @@ export const storageService = {
   getSavingsGoals(): SavingsGoal[] {
     try {
       const data = localStorage.getItem(STORAGE_KEYS.SAVINGS_GOALS);
-      if (data) return JSON.parse(data);
+      if (data) {
+        const parsed: SavingsGoal[] = JSON.parse(data);
+        // Automatically purge any legacy Goa trip goal and ensure New Phone goal is loaded
+        const hasGoa = parsed.some((g) => g.name.toLowerCase().includes('goa'));
+        if (hasGoa) {
+          const cleaned = parsed
+            .filter((g) => !g.name.toLowerCase().includes('goa'))
+            .concat(INITIAL_SAVINGS_GOALS.filter((g) => g.id === 'goal_002'));
+          this.saveSavingsGoals(cleaned);
+          return cleaned;
+        }
+        return parsed;
+      }
     } catch (e) {
       console.error('Failed to load savings goals', e);
     }

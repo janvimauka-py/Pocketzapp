@@ -24,7 +24,7 @@ export const AddMoneyModal: React.FC<AddMoneyModalProps> = ({
 
   if (!isOpen) return null;
 
-  const quickAmounts = [500, 1000, 2500, 5000];
+  const quickAmounts = [500, 1000, 2500, 5000, 10000];
 
   const paymentMethods = [
     { id: 'FastPay UPI', name: 'FastPay UPI / QR', desc: 'Instant 0% fee', icon: Smartphone },

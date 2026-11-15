@@ -264,7 +264,7 @@ export const HomeWalletView: React.FC<HomeWalletViewProps> = ({
                 🎯 Vault Velocity High
               </span>
               <p className="mt-1 text-slate-600 text-[11px] leading-relaxed">
-                "Goa College Roadtrip" is 80% funded! Deposit {currency}60 more to achieve 100% completion ahead of winter break.
+                "New Phone (iPhone 16)" is 66% funded! Deposit {currency}5,000 more to achieve 100% completion ahead of semester end.
               </p>
             </div>
           </div>

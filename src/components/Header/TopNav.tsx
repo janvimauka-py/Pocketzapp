@@ -6,7 +6,8 @@ import {
   RotateCcw, 
   Menu, 
   Check, 
-  ShieldCheck 
+  ShieldCheck,
+  PieChart 
 } from 'lucide-react';
 import { UserProfile, AppNotification } from '../../types';
 
@@ -18,6 +19,7 @@ interface TopNavProps {
   onOpenNotifications: () => void;
   onOpenSettings: () => void;
   onOpenAI: () => void;
+  onOpenBudgetModal?: () => void;
   onResetDemo: () => void;
   onUpdateUser: (updatedUser: UserProfile) => void;
 }
@@ -30,6 +32,7 @@ export const TopNav: React.FC<TopNavProps> = ({
   onOpenNotifications,
   onOpenSettings,
   onOpenAI,
+  onOpenBudgetModal,
   onResetDemo,
   onUpdateUser,
 }) => {
@@ -106,6 +109,19 @@ export const TopNav: React.FC<TopNavProps> = ({
               Reset
             </button>
           </div>
+
+          {/* Interactive Budget Health Popup Trigger */}
+          {onOpenBudgetModal && (
+            <button
+              type="button"
+              onClick={onOpenBudgetModal}
+              title="Open Interactive Budget Health Overview"
+              className="hidden md:flex items-center gap-1.5 rounded-xl border border-blue-200/80 bg-blue-50/70 hover:bg-blue-100/70 px-2.5 py-1.5 text-xs font-bold text-blue-800 transition-all shadow-xs"
+            >
+              <PieChart className="h-3.5 w-3.5 text-blue-600" />
+              <span>Budget Health</span>
+            </button>
+          )}
 
           {/* Currency Switcher */}
           <div className="relative">

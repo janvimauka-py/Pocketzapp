@@ -190,7 +190,7 @@ Rules:
     }).join('\n');
 
     return {
-      text: `💎 **Savings & Goals Overview:**\n\nYou have currently saved a total of **${currency}${totalSavings.toFixed(2)}** across **${context.savingsGoals.length}** goals!\n\nOverall Target: **${currency}${totalSavingsTarget.toFixed(2)}** (${Math.round((totalSavings / (totalSavingsTarget || 1)) * 100)}% achieved)\n\n**Goal Breakdown:**\n${goalsList}\n\n💡 *Pro-tip:* Allocating 15% of your next incoming transfer directly into your Goa College Roadtrip goal will complete it 2 weeks earlier!`,
+      text: `💎 **Savings & Goals Overview:**\n\nYou have currently saved a total of **${currency}${totalSavings.toFixed(2)}** across **${context.savingsGoals.length}** goals!\n\nOverall Target: **${currency}${totalSavingsTarget.toFixed(2)}** (${Math.round((totalSavings / (totalSavingsTarget || 1)) * 100)}% achieved)\n\n**Goal Breakdown:**\n${goalsList}\n\n💡 *Pro-tip:* Allocating 15% of your next incoming transfer directly into your ${context.savingsGoals[0]?.name || 'savings'} goal will complete it 2 weeks earlier!`,
       dataMetrics: [
         { label: 'Total Saved', value: `${currency}${totalSavings.toFixed(2)}`, type: 'positive' },
         { label: 'Total Target', value: `${currency}${totalSavingsTarget.toFixed(2)}`, type: 'neutral' },

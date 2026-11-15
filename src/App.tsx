@@ -232,6 +232,7 @@ export function App() {
               onOpenNotifications={() => setShowNotificationsDrawer(true)}
               onOpenSettings={() => setShowSettingsModal(true)}
               onOpenAI={() => setShowAIDrawer(true)}
+              onOpenBudgetModal={() => setShowBudgetPopup(true)}
               onResetDemo={handleResetDemoData}
               onUpdateUser={(updated) => setUser(updated)}
             />
@@ -388,6 +389,14 @@ export function App() {
               totalSavings={totalSavings}
               recentTransactions={transactions}
               onClose={() => setShowCheckBalance(false)}
+              onAddMoneyClick={() => {
+                setShowCheckBalance(false);
+                setShowAddMoney(true);
+              }}
+              onTransferClick={() => {
+                setShowCheckBalance(false);
+                setShowTransferMoney(true);
+              }}
             />
           )}
 
