@@ -40,7 +40,7 @@ import { SmartBudgetPopup } from './components/Popups/SmartBudgetPopup';
 import { AIAssistantDrawer } from './components/AIAssistant/AIAssistantDrawer';
 import { ProfileSettingsModal } from './components/ProfileSettings/ProfileSettingsModal';
 import { NotificationsDrawer } from './components/Notifications/NotificationsDrawer';
-import { SituationalTabModal } from './components/Popups/SituationalTabModal';
+import { MagicalTabSlideBanner } from './components/Navigation/MagicalTabSlideBanner';
 
 export function App() {
   // App authentication state
@@ -69,7 +69,6 @@ export function App() {
   const [showSettingsModal, setShowSettingsModal] = useState<boolean>(false);
   const [showNotificationsDrawer, setShowNotificationsDrawer] = useState<boolean>(false);
   const [isOpenMobileSidebar, setIsOpenMobileSidebar] = useState<boolean>(false);
-  const [situationalTab, setSituationalTab] = useState<string | null>(null);
 
   // Auto trigger budget popup on first entry
   useEffect(() => {
@@ -229,9 +228,6 @@ export function App() {
                 setShowSettingsModal(true);
               } else {
                 setActiveTab(tab);
-                if (['savings', 'expenses', 'budget', 'scanner'].includes(tab)) {
-                  setSituationalTab(tab);
-                }
               }
             }}
             user={user}
@@ -266,6 +262,41 @@ export function App() {
             {/* Main Body Viewport */}
             <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
               
+              {/* Magical Sliding Tab & Situational Icons Banner */}
+              <MagicalTabSlideBanner
+                activeTab={activeTab}
+                walletBalance={walletBalance}
+                currency={user.currency || '₹'}
+                savingsGoals={savingsGoals}
+                onQuickDeposit={(goalId, amount) => {
+                  const targetGoal = savingsGoals.find((g) => g.id === goalId);
+                  if (targetGoal) {
+                    const updatedGoals = savingsGoals.map((g) =>
+                      g.id === goalId ? { ...g, currentAmount: g.currentAmount + amount } : g
+                    );
+                    setSavingsGoals(updatedGoals);
+                    storageService.saveSavingsGoals(updatedGoals);
+
+                    handleRecordTransaction({
+                      id: `TXN-SAV-${Date.now().toString().slice(-6)}`,
+                      type: 'expense',
+                      amount,
+                      description: `Quick Allocation to ${targetGoal.name}`,
+                      category: 'Other',
+                      recipientOrMerchant: `Goal: ${targetGoal.name}`,
+                      paymentMethod: 'PocketZapp Instant Allocation',
+                      status: 'completed',
+                      date: new Date().toISOString(),
+                      referenceId: `REF-SAV-${Math.floor(100000 + Math.random() * 900000)}`,
+                      notes: `1-Tap Wallet deposit into ${targetGoal.name}`,
+                    });
+                  }
+                }}
+                onQuickExpense={(tx) => {
+                  handleRecordTransaction(tx);
+                }}
+              />
+
               {/* View 1: Digital Wallet (Main Home Screen) */}
               {activeTab === 'wallet' && (
                 <HomeWalletView
@@ -292,12 +323,7 @@ export function App() {
                   onRecordTransaction={handleRecordTransaction}
                   onCheckoutPay={() => setShowCheckoutPay(true)}
                   onSelectTransaction={(tx) => setReceiptTx(tx)}
-                  onNavigateTab={(tab) => {
-                    setActiveTab(tab);
-                    if (['savings', 'expenses', 'budget', 'scanner'].includes(tab)) {
-                      setSituationalTab(tab);
-                    }
-                  }}
+                  onNavigateTab={(tab) => setActiveTab(tab)}
                   onOpenBudgetModal={() => setShowBudgetPopup(true)}
                 />
               )}
@@ -534,51 +560,7 @@ export function App() {
                 );
               }}
               onClearAll={() => setNotifications([])}
-              onNavigateTab={(tab) => {
-                setActiveTab(tab);
-                if (['savings', 'expenses', 'budget', 'scanner'].includes(tab)) {
-                  setSituationalTab(tab);
-                }
-              }}
-            />
-          )}
-
-          {/* 10. Situational Pop-up Screen */}
-          {situationalTab && (
-            <SituationalTabModal
-              isOpen={!!situationalTab}
-              tabId={situationalTab}
-              walletBalance={walletBalance}
-              currency={user.currency || '₹'}
-              savingsGoals={savingsGoals}
-              onClose={() => setSituationalTab(null)}
-              onQuickDeposit={(goalId, amount) => {
-                const targetGoal = savingsGoals.find((g) => g.id === goalId);
-                if (targetGoal) {
-                  const updatedGoals = savingsGoals.map((g) =>
-                    g.id === goalId ? { ...g, currentAmount: g.currentAmount + amount } : g
-                  );
-                  setSavingsGoals(updatedGoals);
-                  storageService.saveSavingsGoals(updatedGoals);
-
-                  handleRecordTransaction({
-                    id: `TXN-SAV-${Date.now().toString().slice(-6)}`,
-                    type: 'expense',
-                    amount,
-                    description: `Wallet Allocation to ${targetGoal.name}`,
-                    category: 'Other',
-                    recipientOrMerchant: `Goal: ${targetGoal.name}`,
-                    paymentMethod: 'PocketZapp Instant Allocation',
-                    status: 'completed',
-                    date: new Date().toISOString(),
-                    referenceId: `REF-SAV-${Math.floor(100000 + Math.random() * 900000)}`,
-                    notes: `1-Tap Wallet deposit into ${targetGoal.name}`,
-                  });
-                }
-              }}
-              onQuickExpense={(tx) => {
-                handleRecordTransaction(tx);
-              }}
+              onNavigateTab={(tab) => setActiveTab(tab)}
             />
           )}
 
