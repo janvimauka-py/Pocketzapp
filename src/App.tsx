@@ -19,14 +19,14 @@ import {
 import { storageService, DEFAULT_USER } from './services/storage';
 
 // Components
-import { PinLockScreen } from './components/Security/PinLockScreen';
+import { LoginScreen } from './components/Auth/LoginScreen';
+import { WelcomeNamePopup } from './components/Auth/WelcomeNamePopup';
 import { LeftSidebar } from './components/Navigation/LeftSidebar';
 import { TopNav } from './components/Header/TopNav';
 import { HomeWalletView } from './components/Wallet/HomeWalletView';
 import { SavingsManager } from './components/Savings/SavingsManager';
 import { ExpenseManager } from './components/Expenses/ExpenseManager';
 import { BudgetManager } from './components/Budget/BudgetManager';
-import { ReceiptScanner } from './components/ReceiptScanner/ReceiptScanner';
 import { TransactionHistory } from './components/TransactionHistory/TransactionHistory';
 import { AnalyticsReports } from './components/Analytics/AnalyticsReports';
 
@@ -41,10 +41,12 @@ import { AIAssistantDrawer } from './components/AIAssistant/AIAssistantDrawer';
 import { ProfileSettingsModal } from './components/ProfileSettings/ProfileSettingsModal';
 import { NotificationsDrawer } from './components/Notifications/NotificationsDrawer';
 import { MagicalTabSlideBanner } from './components/Navigation/MagicalTabSlideBanner';
+import { ToastProvider } from './components/UI/ToastSystem';
 
 export function App() {
   // App authentication state
-  const [isUnlocked, setIsUnlocked] = useState<boolean>(false);
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
+  const [showNamePopup, setShowNamePopup] = useState<boolean>(false);
 
   // Persistent domain state
   const [user, setUser] = useState<UserProfile>(() => storageService.getUser());
@@ -72,22 +74,22 @@ export function App() {
 
   // Auto trigger budget popup on first entry
   useEffect(() => {
-    if (isUnlocked && !storageService.hasSeenBudgetPopup()) {
+    if (isLoggedIn && !storageService.hasSeenBudgetPopup()) {
       setShowBudgetPopup(true);
       storageService.setSeenBudgetPopup(true);
     }
-  }, [isUnlocked]);
+  }, [isLoggedIn]);
 
-  // Inactivity Auto-Lock (Locks app after 3 minutes of idle time)
+  // Inactivity Auto-Lock (Returns to login after 3 minutes of idle time)
   useEffect(() => {
-    if (!isUnlocked) return;
+    if (!isLoggedIn) return;
 
     let timeoutId: any;
 
     const resetInactivityTimer = () => {
       clearTimeout(timeoutId);
       timeoutId = setTimeout(() => {
-        setIsUnlocked(false);
+        setIsLoggedIn(false);
       }, 3 * 60 * 1000);
     };
 
@@ -100,7 +102,28 @@ export function App() {
       clearTimeout(timeoutId);
       events.forEach((ev) => window.removeEventListener(ev, resetInactivityTimer));
     };
-  }, [isUnlocked]);
+  }, [isLoggedIn]);
+
+  // Login handler (called by LoginScreen)
+  const handleLogin = (name: string, email: string, isNewUser: boolean) => {
+    const updatedUser = { ...user, name, email };
+    setUser(updatedUser);
+    storageService.saveUser(updatedUser);
+    if (isNewUser) {
+      setShowNamePopup(true);
+    } else {
+      setIsLoggedIn(true);
+    }
+  };
+
+  // Name popup confirmation (first-time users)
+  const handleNameContinue = (name: string) => {
+    const updatedUser = { ...user, name };
+    setUser(updatedUser);
+    storageService.saveUser(updatedUser);
+    setShowNamePopup(false);
+    setIsLoggedIn(true);
+  };
 
   // Sync state to LocalStorage
   useEffect(() => {
@@ -209,12 +232,13 @@ export function App() {
   };
 
   return (
+    <ToastProvider>
     <div className="relative min-h-screen bg-[#070B14] text-slate-800 antialiased selection:bg-blue-600 selection:text-white overflow-x-hidden">
       
       {/* Actual Website Dashboard (Always Loaded in Background, Blurred when Locked) */}
       <div 
         className={`flex min-h-screen bg-[#F1F5F9] transition-all duration-700 ease-in-out ${
-          !isUnlocked 
+          !isLoggedIn 
             ? 'filter blur-[14px] brightness-[0.5] pointer-events-none select-none max-h-screen overflow-hidden' 
             : 'filter blur-0 brightness-100'
         }`}
@@ -236,7 +260,7 @@ export function App() {
             onOpenAI={() => setShowAIDrawer(true)}
             onOpenAddMoney={() => setShowAddMoney(true)}
             onResetDemo={handleResetDemoData}
-            onLogout={() => setIsUnlocked(false)}
+            onLogout={() => setIsLoggedIn(false)}
             isOpenMobile={isOpenMobileSidebar}
             onCloseMobile={() => setIsOpenMobileSidebar(false)}
           />
@@ -254,7 +278,7 @@ export function App() {
               onOpenSettings={() => setShowSettingsModal(true)}
               onOpenAI={() => setShowAIDrawer(true)}
               onOpenBudgetModal={() => setShowBudgetPopup(true)}
-              onLockApp={() => setIsUnlocked(false)}
+              onLockApp={() => setIsLoggedIn(false)}
               onResetDemo={handleResetDemoData}
               onUpdateUser={(updated) => setUser(updated)}
             />
@@ -366,14 +390,7 @@ export function App() {
                 />
               )}
 
-              {/* View 5: AI Receipt Scanner */}
-              {activeTab === 'scanner' && (
-                <ReceiptScanner
-                  currency={user.currency || '₹'}
-                  onAddTransaction={handleRecordTransaction}
-                  onNavigateToHistory={() => setActiveTab('history')}
-                />
-              )}
+              {/* View 5: (Scanner removed) */}
 
               {/* View 6: Transaction History */}
               {activeTab === 'history' && (
@@ -542,7 +559,7 @@ export function App() {
               onUpdateUser={(updated) => setUser(updated)}
               onLogout={() => {
                 setShowSettingsModal(false);
-                setIsUnlocked(false);
+                setIsLoggedIn(false);
               }}
               onResetDemo={handleResetDemoData}
             />
@@ -566,16 +583,18 @@ export function App() {
 
         </div>
 
-      {/* Premium Full-Screen PIN Security Overlay */}
-      {!isUnlocked && (
-        <PinLockScreen
-          user={user}
-          onUnlocked={() => setIsUnlocked(true)}
-          onUpdateUser={(updated) => setUser(updated)}
-        />
+      {/* Login Screen Overlay */}
+      {!isLoggedIn && !showNamePopup && (
+        <LoginScreen onLogin={handleLogin} />
+      )}
+
+      {/* First-Time User: "What do I call you?" Popup */}
+      {showNamePopup && (
+        <WelcomeNamePopup onContinue={handleNameContinue} />
       )}
 
     </div>
+    </ToastProvider>
   );
 }
 

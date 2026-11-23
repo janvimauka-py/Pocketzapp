@@ -164,7 +164,7 @@ export const INITIAL_SAVINGS_GOALS: SavingsGoal[] = [
     targetAmount: 160000,
     currentAmount: 120000,
     targetDate: '2027-02-28',
-    category: 'Education',
+    category: 'Electronics & Gadgets',
     icon: 'Laptop',
     color: 'from-blue-600 to-indigo-600',
     createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 40).toISOString(),

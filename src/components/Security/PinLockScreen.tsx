@@ -1,17 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  Shield, 
-  Lock, 
-  Eye, 
-  EyeOff, 
-  AlertCircle, 
-  KeyRound, 
-  CheckCircle2, 
-  Delete, 
-  Sparkles,
-  ShieldCheck,
-  Check
-} from 'lucide-react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { Delete, Eye, EyeOff, AlertCircle, Check, Shield } from 'lucide-react';
 import { UserProfile } from '../../types';
 
 interface PinLockScreenProps {
@@ -20,280 +8,473 @@ interface PinLockScreenProps {
   onUpdateUser: (updatedUser: UserProfile) => void;
 }
 
-export const PinLockScreen: React.FC<PinLockScreenProps> = ({
-  user,
-  onUnlocked,
-  onUpdateUser,
-}) => {
-  const [pinInput, setPinInput] = useState<string>('');
-  const [showPin, setShowPin] = useState<boolean>(false);
-  const [errorMessage, setErrorMessage] = useState<string>('');
-  const [shake, setShake] = useState<boolean>(false);
-  const [isSuccess, setIsSuccess] = useState<boolean>(false);
-  const [lockoutSeconds, setLockoutSeconds] = useState<number>(0);
+const PIN_LENGTH = 4;
+const MAX_ATTEMPTS = 3;
+const LOCKOUT_SECONDS = 30;
 
-  const pinTargetLength = 4;
+function getTimeGreeting(): string {
+  const hour = new Date().getHours();
+  if (hour < 12) return 'Good morning';
+  if (hour < 17) return 'Good afternoon';
+  return 'Good evening';
+}
 
-  // Handle lockout countdown
+// Constant-time PIN comparison — never log or expose the PIN value
+function verifyPin(entered: string, stored: string): boolean {
+  if (entered.length !== stored.length) return false;
+  let result = 0;
+  for (let i = 0; i < entered.length; i++) {
+    result |= entered.charCodeAt(i) ^ stored.charCodeAt(i);
+  }
+  return result === 0;
+}
+
+export const PinLockScreen: React.FC<PinLockScreenProps> = ({ user, onUnlocked, onUpdateUser }) => {
+  const [pinInput, setPinInput] = useState('');
+  const [showPin, setShowPin] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+  const [shake, setShake] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
+  const [lockoutSeconds, setLockoutSeconds] = useState(0);
+  const [filledAnim, setFilledAnim] = useState<boolean[]>([false, false, false, false]);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Lockout countdown on mount / lockUntil change
   useEffect(() => {
     if (user.lockUntil) {
       const remaining = Math.max(0, Math.ceil((user.lockUntil - Date.now()) / 1000));
       if (remaining > 0) {
         setLockoutSeconds(remaining);
-        const timer = setInterval(() => {
+        timerRef.current = setInterval(() => {
           setLockoutSeconds((prev) => {
             if (prev <= 1) {
-              clearInterval(timer);
+              if (timerRef.current) clearInterval(timerRef.current);
               onUpdateUser({ ...user, lockUntil: null, failedPinAttempts: 0 });
               return 0;
             }
             return prev - 1;
           });
         }, 1000);
-        return () => clearInterval(timer);
+        return () => { if (timerRef.current) clearInterval(timerRef.current); };
       }
     }
   }, [user.lockUntil]);
 
   const triggerShake = () => {
     setShake(true);
+    if (navigator.vibrate) navigator.vibrate([80, 40, 80]);
     setTimeout(() => setShake(false), 600);
   };
 
-  const validateUnlockPin = (entered: string) => {
-    // Strictly enforce 1507 as the only valid Master PIN with zero reset option
-    if (entered === '1507') {
+  const validatePin = useCallback((entered: string) => {
+    if (verifyPin(entered, user.pin || '')) {
       setIsSuccess(true);
       setErrorMessage('');
-      onUpdateUser({ ...user, pin: '1507', failedPinAttempts: 0, lockUntil: null });
-      // Smooth fade-out before unmounting
-      setTimeout(() => {
-        onUnlocked();
-      }, 700);
+      onUpdateUser({ ...user, failedPinAttempts: 0, lockUntil: null });
+      setTimeout(() => onUnlocked(), 900);
     } else {
       triggerShake();
       const newAttempts = (user.failedPinAttempts || 0) + 1;
       setPinInput('');
-
-      if (newAttempts >= 5) {
-        const lockoutTime = Date.now() + 30 * 1000;
-        onUpdateUser({
-          ...user,
-          failedPinAttempts: newAttempts,
-          lockUntil: lockoutTime,
-        });
-        setLockoutSeconds(30);
-        setErrorMessage('Too many failed attempts! Security lock engaged for 30s.');
+      setFilledAnim([false, false, false, false]);
+      if (newAttempts >= MAX_ATTEMPTS) {
+        const lockoutTime = Date.now() + LOCKOUT_SECONDS * 1000;
+        onUpdateUser({ ...user, failedPinAttempts: newAttempts, lockUntil: lockoutTime });
+        setLockoutSeconds(LOCKOUT_SECONDS);
+        setErrorMessage(`Security lockout active. Try again in ${LOCKOUT_SECONDS}s.`);
       } else {
         onUpdateUser({ ...user, failedPinAttempts: newAttempts });
-        const remaining = 5 - newAttempts;
-        setErrorMessage(
-          `Incorrect PIN. ${remaining} attempt${remaining > 1 ? 's' : ''} remaining before lockout.`
-        );
+        const remaining = MAX_ATTEMPTS - newAttempts;
+        setErrorMessage(`Incorrect PIN — ${remaining} attempt${remaining !== 1 ? 's' : ''} remaining.`);
       }
     }
-  };
+  }, [user, onUnlocked, onUpdateUser]);
 
-  const handleKeyPress = (digit: string) => {
+  const handleKeyPress = useCallback((digit: string) => {
     if (lockoutSeconds > 0 || isSuccess) return;
     setErrorMessage('');
-
-    if (pinInput.length < pinTargetLength) {
+    if (pinInput.length < PIN_LENGTH) {
       const next = pinInput + digit;
       setPinInput(next);
-      if (next.length === pinTargetLength) {
-        validateUnlockPin(next);
-      }
+      setFilledAnim(prev => { const a = [...prev]; a[next.length - 1] = true; return a; });
+      if (next.length === PIN_LENGTH) setTimeout(() => validatePin(next), 80);
     }
-  };
+  }, [lockoutSeconds, isSuccess, pinInput, validatePin]);
 
-  const handleBackspace = () => {
+  const handleBackspace = useCallback(() => {
     if (lockoutSeconds > 0 || isSuccess) return;
-    setPinInput((prev) => prev.slice(0, -1));
     setErrorMessage('');
-  };
+    setPinInput(prev => {
+      if (prev.length === 0) return prev;
+      setFilledAnim(arr => { const a = [...arr]; a[prev.length - 1] = false; return a; });
+      return prev.slice(0, -1);
+    });
+  }, [lockoutSeconds, isSuccess]);
 
-  const handleClear = () => {
+  const handleClear = useCallback(() => {
     if (lockoutSeconds > 0 || isSuccess) return;
     setPinInput('');
+    setFilledAnim([false, false, false, false]);
     setErrorMessage('');
-  };
+  }, [lockoutSeconds, isSuccess]);
+
+  // Physical keyboard support
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key >= '0' && e.key <= '9') handleKeyPress(e.key);
+      else if (e.key === 'Backspace') handleBackspace();
+      else if (e.key === 'Escape') handleClear();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [handleKeyPress, handleBackspace, handleClear]);
+
+  const greeting = getTimeGreeting();
+  const firstName = user.name?.split(' ')[0] || 'User';
+
+  // Stable floating coin positions
+  const coins = [
+    { top: '8%', left: '6%', delay: '0s', dur: '7s' },
+    { top: '15%', left: '87%', delay: '1.5s', dur: '8s' },
+    { top: '55%', left: '4%', delay: '2.8s', dur: '6s' },
+    { top: '72%', left: '91%', delay: '0.7s', dur: '9s' },
+    { top: '38%', left: '2%', delay: '3.5s', dur: '7.5s' },
+    { top: '82%', left: '12%', delay: '1.2s', dur: '8.5s' },
+    { top: '28%', left: '93%', delay: '2.2s', dur: '5.5s' },
+    { top: '48%', left: '96%', delay: '0.4s', dur: '10s' },
+    { top: '65%', left: '7%', delay: '4s', dur: '6.5s' },
+    { top: '90%', left: '78%', delay: '1.9s', dur: '7s' },
+  ];
 
   return (
-    <div 
-      className={`fixed inset-0 z-50 flex items-center justify-center bg-[#070B14]/80 backdrop-blur-[14px] p-4 font-sans text-white transition-opacity duration-700 ${
-        isSuccess ? 'opacity-0 scale-95 pointer-events-none' : 'opacity-100 scale-100'
-      }`}
-    >
-      {/* Decorative ambient glowing orbs */}
-      <div className="absolute top-1/4 -left-20 h-80 w-80 rounded-full bg-blue-600/25 blur-3xl pointer-events-none animate-pulse" />
-      <div className="absolute bottom-1/4 -right-20 h-96 w-96 rounded-full bg-indigo-600/20 blur-3xl pointer-events-none" />
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-[500px] w-[500px] rounded-full bg-cyan-500/10 blur-[100px] pointer-events-none" />
+    <>
+      <style>{`
+        @keyframes coinRise {
+          0%   { transform: translateY(0px) rotate(-8deg); opacity: 0; }
+          15%  { opacity: 0.55; }
+          85%  { opacity: 0.35; }
+          100% { transform: translateY(-90px) rotate(12deg); opacity: 0; }
+        }
+        @keyframes auroraShift {
+          0%, 100% { transform: scale(1) translate(0, 0); }
+          33%       { transform: scale(1.1) translate(3%, -4%); }
+          66%       { transform: scale(0.95) translate(-2%, 3%); }
+        }
+        @keyframes wiggle {
+          0%, 100% { transform: translateX(0); }
+          20%, 60% { transform: translateX(-10px); }
+          40%, 80% { transform: translateX(10px); }
+        }
+        @keyframes dotPop {
+          0%   { transform: scale(0.5); opacity: 0; }
+          70%  { transform: scale(1.15); }
+          100% { transform: scale(1); opacity: 1; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          *, *::before, *::after {
+            animation-duration: 0.01ms !important;
+            transition-duration: 0.01ms !important;
+          }
+        }
+      `}</style>
 
-      {/* Centred Floating Glassmorphism Security Card */}
-      <div 
-        className={`relative w-full max-w-sm rounded-[32px] border border-white/[0.12] bg-[#0E1526]/85 p-6 sm:p-8 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.7),0_0_50px_rgba(37,99,235,0.2)] backdrop-blur-2xl transition-all duration-300 ${
-          shake ? 'animate-[wiggle_0.4s_ease-in-out]' : ''
-        } ${isSuccess ? 'ring-2 ring-emerald-400 border-emerald-400/60 shadow-[0_0_60px_rgba(16,185,129,0.35)]' : ''}`}
+      <div
+        className={`fixed inset-0 z-[100] flex items-center justify-center p-4 overflow-hidden transition-all duration-800 ${
+          isSuccess ? 'opacity-0 scale-110 pointer-events-none' : 'opacity-100 scale-100'
+        }`}
+        style={{
+          background: 'radial-gradient(ellipse at 25% 60%, #0d1b4b 0%, #070a1f 55%, #0a0620 100%)',
+        }}
       >
-        {/* Top Glowing Security Shield & Branding */}
-        <div className="flex flex-col items-center text-center">
-          
-          {/* Animated Glowing Security Shield */}
-          <div className="relative mb-3 flex items-center justify-center">
-            {/* Outer pulsating wave */}
-            <div className="absolute -inset-2 rounded-3xl bg-gradient-to-r from-blue-500/30 to-cyan-400/30 blur-md animate-pulse" />
-            <div className={`relative flex h-16 w-16 items-center justify-center rounded-2xl border transition-all duration-500 shadow-xl ${
-              isSuccess 
-                ? 'border-emerald-400/60 bg-gradient-to-tr from-emerald-600 to-teal-500 text-white shadow-emerald-500/30'
-                : 'border-blue-400/40 bg-gradient-to-tr from-blue-600 via-indigo-600 to-cyan-500 text-white shadow-blue-500/30'
-            }`}>
-              {isSuccess ? (
-                <Check className="h-8 w-8 text-white animate-bounce" />
-              ) : (
-                <Shield className="h-8 w-8 text-white drop-shadow-md" />
+        {/* Aurora blobs */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true">
+          <div className="absolute rounded-full" style={{
+            width: '700px', height: '450px', top: '-15%', left: '-20%',
+            background: 'radial-gradient(circle, rgba(34,211,238,0.22) 0%, transparent 65%)',
+            animation: 'auroraShift 12s ease-in-out infinite',
+            filter: 'blur(80px)',
+          }} />
+          <div className="absolute rounded-full" style={{
+            width: '550px', height: '550px', bottom: '-25%', right: '-15%',
+            background: 'radial-gradient(circle, rgba(255,77,121,0.18) 0%, transparent 65%)',
+            animation: 'auroraShift 15s ease-in-out infinite 3s',
+            filter: 'blur(70px)',
+          }} />
+          <div className="absolute rounded-full" style={{
+            width: '350px', height: '350px', top: '25%', right: '15%',
+            background: 'radial-gradient(circle, rgba(129,140,248,0.15) 0%, transparent 65%)',
+            animation: 'auroraShift 9s ease-in-out infinite 1.5s',
+            filter: 'blur(60px)',
+          }} />
+          {/* Subtle dot grid */}
+          <div className="absolute inset-0" style={{
+            backgroundImage: 'radial-gradient(rgba(255,255,255,0.08) 1px, transparent 1px)',
+            backgroundSize: '32px 32px',
+            opacity: 0.4,
+          }} />
+        </div>
+
+        {/* Floating ₹ coins */}
+        {coins.map((c, i) => (
+          <span
+            key={i}
+            aria-hidden="true"
+            className="absolute select-none pointer-events-none font-black"
+            style={{
+              top: c.top, left: c.left,
+              fontSize: i % 3 === 0 ? '1.5rem' : i % 2 === 0 ? '1.1rem' : '0.9rem',
+              color: 'rgba(251,191,36,0.35)',
+              animation: `coinRise ${c.dur} ease-in-out infinite`,
+              animationDelay: c.delay,
+              textShadow: '0 0 12px rgba(251,191,36,0.4)',
+            }}
+          >
+            ₹
+          </span>
+        ))}
+
+        {/* ── GLASS CARD ── */}
+        <div
+          className={`relative w-full max-w-[390px] rounded-[28px] p-7 sm:p-8 transition-all duration-300 ${
+            shake ? 'animate-[wiggle_0.45s_ease-in-out]' : ''
+          }`}
+          style={{
+            background: 'rgba(8, 12, 36, 0.78)',
+            backdropFilter: 'blur(32px)',
+            WebkitBackdropFilter: 'blur(32px)',
+            border: isSuccess
+              ? '1.5px solid rgba(52,211,153,0.45)'
+              : '1.5px solid rgba(34,211,238,0.14)',
+            boxShadow: isSuccess
+              ? '0 0 70px rgba(52,211,153,0.25), 0 30px 70px -15px rgba(0,0,0,0.85)'
+              : '0 0 50px rgba(34,211,238,0.07), 0 30px 70px -15px rgba(0,0,0,0.85)',
+          }}
+        >
+          {/* Brand + Shield */}
+          <div className="flex flex-col items-center text-center space-y-3">
+
+            {/* Animated shield icon */}
+            <div className="relative mt-1">
+              <div className="absolute -inset-4 rounded-full blur-2xl opacity-50 animate-pulse" style={{
+                background: isSuccess
+                  ? 'radial-gradient(circle, rgba(52,211,153,0.6), transparent)'
+                  : 'radial-gradient(circle, rgba(34,211,238,0.5), rgba(255,77,121,0.3), transparent)',
+                animationDuration: '3s',
+              }} />
+              <div
+                className="relative flex h-[68px] w-[68px] items-center justify-center rounded-[22px] transition-all duration-500"
+                style={{
+                  background: isSuccess
+                    ? 'linear-gradient(145deg, #34d399, #059669)'
+                    : 'linear-gradient(145deg, #1e3a8a, #0e7490)',
+                  boxShadow: isSuccess
+                    ? '0 0 35px rgba(52,211,153,0.6), inset 0 1px 0 rgba(255,255,255,0.15)'
+                    : '0 0 30px rgba(34,211,238,0.4), inset 0 1px 0 rgba(255,255,255,0.1)',
+                }}
+              >
+                {isSuccess
+                  ? <Check className="h-8 w-8 text-white" strokeWidth={3} />
+                  : <Shield className="h-8 w-8 text-white animate-pulse" style={{ animationDuration: '2.5s' }} />
+                }
+              </div>
+            </div>
+
+            {/* PocketZapp brand */}
+            <div className="flex items-center gap-1.5">
+              <span className="text-2xl font-black tracking-tight text-white">
+                Pocket<span style={{ color: '#ff4d79' }}>Zapp</span>
+              </span>
+              <span className="rounded-full px-2 py-0.5 text-[10px] font-black uppercase tracking-widest" style={{
+                background: 'rgba(34,211,238,0.12)',
+                border: '1px solid rgba(34,211,238,0.28)',
+                color: '#22d3ee',
+              }}>AI</span>
+            </div>
+
+            {/* Time-based greeting */}
+            <div className="space-y-1">
+              <h1 className="text-lg sm:text-xl font-bold text-white leading-tight">
+                {isSuccess ? '✓ Access Granted!' : `${greeting}, ${firstName} ✨`}
+              </h1>
+              {!isSuccess && (
+                <p className="text-sm font-medium" style={{ color: '#94a3b8' }}>
+                  Your money deserves protection.
+                </p>
               )}
+              <p className="text-xs" style={{ color: '#64748b' }}>
+                {isSuccess
+                  ? 'Unlocking your PocketZapp universe…'
+                  : 'Secure access to your PocketZapp universe.'}
+              </p>
             </div>
           </div>
 
-          {/* PocketZapp AI Logo */}
-          <div className="flex items-center gap-1.5">
-            <span className="text-xl font-black tracking-tight text-white">
-              Pocket<span className="text-rose-500">Zapp</span>
-            </span>
-            <span className="rounded-full border border-blue-400/40 bg-blue-500/20 px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-widest text-cyan-300">
-              AI
-            </span>
-          </div>
+          {/* Lockout Timer */}
+          {lockoutSeconds > 0 && (
+            <div className="mt-5 rounded-2xl p-4 text-center" style={{
+              background: 'rgba(255,77,121,0.1)',
+              border: '1px solid rgba(255,77,121,0.3)',
+            }}>
+              <AlertCircle className="mx-auto mb-1.5 h-5 w-5" style={{ color: '#ff4d79' }} />
+              <p className="text-xs font-bold text-white">Security Lockout Active</p>
+              <p className="mt-1.5 text-xs" style={{ color: '#94a3b8' }}>
+                Wait{' '}
+                <span className="font-mono font-black text-lg" style={{ color: '#ff4d79' }}>
+                  {lockoutSeconds}s
+                </span>{' '}
+                to retry
+              </p>
+            </div>
+          )}
 
-          {/* Heading: Welcome Back! */}
-          <h1 className="mt-2 text-xl sm:text-2xl font-black tracking-tight text-white">
-            {isSuccess ? 'Access Granted!' : 'Welcome Back!'}
-          </h1>
+          {/* PIN Dots */}
+          <div className="mt-6 flex flex-col items-center space-y-3">
+            <div className="flex items-center justify-center gap-4">
+              {Array.from({ length: PIN_LENGTH }).map((_, idx) => {
+                const filled = idx < pinInput.length;
+                return (
+                  <div
+                    key={idx}
+                    className="flex h-14 w-14 items-center justify-center rounded-[18px] transition-all duration-200"
+                    style={{
+                      background: isSuccess
+                        ? 'rgba(52,211,153,0.18)'
+                        : filled
+                        ? 'rgba(34,211,238,0.1)'
+                        : 'rgba(255,255,255,0.04)',
+                      border: isSuccess
+                        ? '1.5px solid rgba(52,211,153,0.55)'
+                        : filled
+                        ? '1.5px solid rgba(34,211,238,0.5)'
+                        : '1.5px solid rgba(255,255,255,0.08)',
+                      boxShadow: isSuccess
+                        ? '0 0 20px rgba(52,211,153,0.3)'
+                        : filled
+                        ? '0 0 16px rgba(34,211,238,0.22)'
+                        : 'none',
+                      transform: (filled && filledAnim[idx]) || isSuccess ? 'scale(1.1)' : 'scale(1)',
+                    }}
+                  >
+                    {filled ? (
+                      showPin ? (
+                        <span
+                          className="font-mono font-black text-lg"
+                          style={{ color: '#22d3ee', animation: 'dotPop 0.2s ease-out forwards' }}
+                        >
+                          {pinInput[idx]}
+                        </span>
+                      ) : (
+                        <div
+                          className="rounded-full"
+                          style={{
+                            width: '12px', height: '12px',
+                            background: 'linear-gradient(135deg, #22d3ee, #ff4d79)',
+                            animation: 'dotPop 0.2s ease-out forwards',
+                            boxShadow: '0 0 10px rgba(34,211,238,0.5)',
+                          }}
+                        />
+                      )
+                    ) : (
+                      <div className="h-2.5 w-2.5 rounded-full" style={{ background: 'rgba(255,255,255,0.12)' }} />
+                    )}
+                  </div>
+                );
+              })}
+            </div>
 
-          {/* Personalized Greeting with user's name */}
-          <p className="mt-0.5 text-xs font-semibold text-blue-300">
-            {isSuccess ? 'Decrypting your dashboard...' : `Hello, ${user.name}`}
-          </p>
-
-          {/* Subtitle */}
-          <p className="mt-1 text-[11px] text-slate-400 font-medium">
-            "Your money deserves protection."
-          </p>
-        </div>
-
-        {/* Lockout Warning Banner */}
-        {lockoutSeconds > 0 && (
-          <div className="mt-4 rounded-2xl border border-rose-500/40 bg-rose-500/15 p-3 text-center text-xs text-rose-300 animate-pulse">
-            <AlertCircle className="mx-auto mb-1 h-5 w-5 text-rose-400" />
-            <p className="font-bold">Security Lockout Active</p>
-            <p className="mt-0.5 text-slate-300">
-              Please wait <span className="font-mono font-black text-rose-400 text-sm">{lockoutSeconds}s</span> before retrying.
-            </p>
-          </div>
-        )}
-
-        {/* Four-digit PIN input with four glowing circular indicators */}
-        <div className="mt-5 flex flex-col items-center">
-          <div className="flex items-center justify-center gap-3.5">
-            {Array.from({ length: pinTargetLength }).map((_, idx) => {
-              const isFilled = idx < pinInput.length;
-              const digitChar = isFilled ? pinInput[idx] : '';
-              
-              return (
-                <div
-                  key={idx}
-                  className={`relative flex h-13 w-13 items-center justify-center rounded-2xl border transition-all duration-300 ${
-                    isSuccess
-                      ? 'border-emerald-400 bg-emerald-500/25 text-emerald-300 shadow-[0_0_20px_rgba(16,185,129,0.5)] scale-105'
-                      : isFilled
-                      ? 'border-cyan-400 bg-blue-500/25 text-white font-mono font-bold text-lg shadow-[0_0_15px_rgba(6,182,212,0.4)] scale-105'
-                      : 'border-white/10 bg-white/[0.04] text-transparent'
-                  }`}
-                >
-                  {isFilled && (
-                    <span className="animate-scaleIn">
-                      {showPin ? digitChar : '●'}
-                    </span>
-                  )}
-                  {!isFilled && (
-                    <span className="h-2 w-2 rounded-full bg-white/20" />
-                  )}
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Show/Hide PIN Option */}
-          <button
-            type="button"
-            onClick={() => setShowPin(!showPin)}
-            className="mt-3 flex items-center gap-1.5 text-xs font-semibold text-slate-400 hover:text-cyan-300 transition-colors"
-          >
-            {showPin ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
-            <span>{showPin ? 'Hide PIN' : 'Show PIN'}</span>
-          </button>
-        </div>
-
-        {/* Error message */}
-        {errorMessage && (
-          <div className="mt-3 rounded-xl border border-rose-500/30 bg-rose-500/15 p-2.5 text-center text-xs font-semibold text-rose-300 shadow-sm">
-            {errorMessage}
-          </div>
-        )}
-
-        {/* Premium 3D Numeric Keypad (0–9) */}
-        <div className="mt-5 grid grid-cols-3 gap-2.5">
-          {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map((digit) => (
+            {/* Show / Hide toggle */}
             <button
-              key={digit}
+              type="button"
+              onClick={() => setShowPin(s => !s)}
+              className="flex items-center gap-1.5 text-xs font-semibold transition-all duration-200 hover:opacity-80"
+              style={{ color: '#64748b' }}
+            >
+              {showPin ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+              <span>{showPin ? 'Hide PIN' : 'Show PIN'}</span>
+            </button>
+          </div>
+
+          {/* Error */}
+          {errorMessage && lockoutSeconds === 0 && (
+            <div className="mt-3 rounded-xl px-3 py-2.5 text-center text-xs font-semibold" style={{
+              background: 'rgba(255,77,121,0.1)',
+              border: '1px solid rgba(255,77,121,0.25)',
+              color: '#ff4d79',
+            }}>
+              {errorMessage}
+            </div>
+          )}
+
+          {/* Success banner */}
+          {isSuccess && (
+            <div className="mt-3 rounded-xl px-3 py-2.5 text-center text-xs font-semibold" style={{
+              background: 'rgba(52,211,153,0.1)',
+              border: '1px solid rgba(52,211,153,0.3)',
+              color: '#34d399',
+            }}>
+              ✓ PIN Verified — Welcome back!
+            </div>
+          )}
+
+          {/* Numeric Keypad */}
+          <div className="mt-5 grid grid-cols-3 gap-2.5">
+            {['1','2','3','4','5','6','7','8','9'].map((d) => (
+              <KeypadButton key={d} label={d} disabled={lockoutSeconds > 0 || isSuccess} onClick={() => handleKeyPress(d)} />
+            ))}
+            <button
               type="button"
               disabled={lockoutSeconds > 0 || isSuccess}
-              onClick={() => handleKeyPress(digit)}
-              className="group relative flex h-13 items-center justify-center rounded-2xl border border-white/[0.08] border-t-white/[0.18] bg-gradient-to-b from-white/[0.1] to-white/[0.03] text-xl font-bold text-white shadow-[0_4px_10px_rgba(0,0,0,0.3)] transition-all duration-150 hover:border-cyan-400/50 hover:bg-white/[0.15] hover:shadow-[0_0_15px_rgba(6,182,212,0.2)] active:scale-95 active:translate-y-0.5 active:bg-blue-600/40 disabled:opacity-25 disabled:cursor-not-allowed"
+              onClick={handleClear}
+              className="flex h-14 items-center justify-center rounded-[18px] text-xs font-bold uppercase tracking-wider transition-all duration-150 active:scale-90 disabled:opacity-25 disabled:cursor-not-allowed"
+              style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', color: '#64748b' }}
             >
-              <span>{digit}</span>
+              Clear
             </button>
-          ))}
+            <KeypadButton label="0" disabled={lockoutSeconds > 0 || isSuccess} onClick={() => handleKeyPress('0')} />
+            <button
+              type="button"
+              disabled={lockoutSeconds > 0 || isSuccess}
+              onClick={handleBackspace}
+              aria-label="Backspace"
+              className="flex h-14 items-center justify-center rounded-[18px] transition-all duration-150 active:scale-90 disabled:opacity-25 disabled:cursor-not-allowed"
+              style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', color: '#64748b' }}
+            >
+              <Delete className="h-5 w-5" />
+            </button>
+          </div>
 
-          {/* Clear Button */}
-          <button
-            type="button"
-            disabled={lockoutSeconds > 0 || isSuccess}
-            onClick={handleClear}
-            className="flex h-13 items-center justify-center rounded-2xl border border-white/[0.06] bg-white/[0.03] text-xs font-bold uppercase tracking-wider text-slate-400 transition-all hover:bg-white/[0.08] hover:text-white active:scale-95 disabled:opacity-25"
-          >
-            Clear
-          </button>
-
-          {/* Digit 0 */}
-          <button
-            type="button"
-            disabled={lockoutSeconds > 0 || isSuccess}
-            onClick={() => handleKeyPress('0')}
-            className="group relative flex h-13 items-center justify-center rounded-2xl border border-white/[0.08] border-t-white/[0.18] bg-gradient-to-b from-white/[0.1] to-white/[0.03] text-xl font-bold text-white shadow-[0_4px_10px_rgba(0,0,0,0.3)] transition-all duration-150 hover:border-cyan-400/50 hover:bg-white/[0.15] active:scale-95 active:translate-y-0.5 active:bg-blue-600/40 disabled:opacity-25"
-          >
-            <span>0</span>
-          </button>
-
-          {/* Backspace Button */}
-          <button
-            type="button"
-            disabled={lockoutSeconds > 0 || isSuccess}
-            onClick={handleBackspace}
-            className="flex h-13 items-center justify-center rounded-2xl border border-white/[0.06] bg-white/[0.03] text-slate-400 transition-all hover:bg-white/[0.08] hover:text-rose-400 active:scale-95 disabled:opacity-25"
-            aria-label="Backspace"
-          >
-            <Delete className="h-5 w-5" />
-          </button>
-        </div>
-
-        {/* Small Green Encrypted-Session Indicator */}
-        <div className="mt-4 flex items-center justify-center gap-2 border-t border-white/[0.08] pt-3 text-[11px] font-medium text-slate-400">
-          <span className="flex h-2 w-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
-          <span>256-Bit SSL Encrypted • Zero-Trust Lock (PIN: 1507)</span>
+          {/* Footer security indicator */}
+          <div className="mt-5 flex items-center justify-center gap-2 border-t pt-4 text-[11px] font-medium" style={{
+            borderColor: 'rgba(255,255,255,0.07)',
+            color: '#475569',
+          }}>
+            <span className="h-2 w-2 rounded-full animate-pulse" style={{
+              background: '#34d399',
+              boxShadow: '0 0 8px rgba(52,211,153,0.9)',
+              animationDuration: '2s',
+            }} />
+            <span>256-bit encrypted • Zero-Trust Lock</span>
+          </div>
         </div>
       </div>
-    </div>
+    </>
   );
 };
+
+// Reusable keypad digit button
+const KeypadButton: React.FC<{ label: string; disabled: boolean; onClick: () => void }> = ({ label, disabled, onClick }) => (
+  <button
+    type="button"
+    disabled={disabled}
+    onClick={onClick}
+    className="relative flex h-14 items-center justify-center rounded-[18px] text-xl font-bold text-white transition-all duration-100 active:scale-90 active:brightness-125 disabled:opacity-25 disabled:cursor-not-allowed select-none"
+    style={{ background: 'rgba(255,255,255,0.065)', border: '1px solid rgba(255,255,255,0.1)' }}
+    onMouseDown={e => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(34,211,238,0.14)'; (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(34,211,238,0.35)'; }}
+    onMouseUp={e => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.065)'; (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(255,255,255,0.1)'; }}
+    onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.065)'; (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(255,255,255,0.1)'; }}
+  >
+    {label}
+  </button>
+);
+
+export default PinLockScreen;

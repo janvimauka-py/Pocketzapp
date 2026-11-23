@@ -58,7 +58,8 @@ export interface UserProfile {
   avatar: string;
   phone: string;
   collegeId: string;
-  pin: string; // Hashed or stored demo PIN
+  course?: string; // e.g. 'B.Tech - Computer Science & Engineering'
+  pin: string; // Stored demo PIN (never logged)
   pinLength: 4 | 6;
   isPinSet: boolean;
   failedPinAttempts: number;
