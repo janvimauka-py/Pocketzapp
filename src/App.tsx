@@ -376,6 +376,12 @@ export function App() {
                 <TransactionHistory
                   transactions={transactions}
                   currency={user.currency || '₹'}
+                  onAddTransaction={(tx) => {
+                    handleRecordTransaction(tx);
+                  }}
+                  onDeleteTransaction={(txId) => {
+                    setTransactions((prev) => prev.filter((t) => t.id !== txId));
+                  }}
                 />
               )}
 
