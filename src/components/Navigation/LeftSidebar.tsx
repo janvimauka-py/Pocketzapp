@@ -2,7 +2,6 @@ import React from 'react';
 import { 
   Wallet, 
   PiggyBank, 
-  Receipt, 
   PieChart, 
   History, 
   BarChart3, 
@@ -46,7 +45,6 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
   const navItems = [
     { id: 'wallet', label: 'Digital Wallet', desc: 'Overview & Balance', icon: Wallet, badge: 'Home' },
     { id: 'savings', label: 'Savings Goals', desc: 'Vaults & Milestones', icon: PiggyBank, badge: 'Vaults' },
-    { id: 'expenses', label: 'Expense Manager', desc: 'Inflow & Outflow', icon: Receipt },
     { id: 'budget', label: 'Smart Budget', desc: 'Category Limits & Pace', icon: PieChart },
     { id: 'history', label: 'Transaction History', desc: 'Audit Trail & Receipts', icon: History },
     { id: 'analytics', label: 'Analytics & Reports', desc: 'Charts & Ratios', icon: BarChart3 },

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import {
   Wallet,
   Coins,
@@ -6,21 +6,16 @@ import {
   Smartphone,
   Laptop,
   CheckCircle2,
-  Utensils,
-  Coffee,
-  BookOpen,
-  Car,
   PieChart,
   ScanLine,
   ShieldCheck,
-  Zap,
   TrendingUp,
   History,
   BarChart3,
   X
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
-import { SavingsGoal, Transaction } from '../../types';
+import { SavingsGoal } from '../../types';
 
 interface MagicalTabSlideBannerProps {
   activeTab: string;
@@ -28,7 +23,6 @@ interface MagicalTabSlideBannerProps {
   currency: string;
   savingsGoals: SavingsGoal[];
   onQuickDeposit?: (goalId: string, amount: number) => void;
-  onQuickExpense?: (tx: Transaction) => void;
 }
 
 export const MagicalTabSlideBanner: React.FC<MagicalTabSlideBannerProps> = ({
@@ -37,7 +31,6 @@ export const MagicalTabSlideBanner: React.FC<MagicalTabSlideBannerProps> = ({
   currency,
   savingsGoals,
   onQuickDeposit,
-  onQuickExpense,
 }) => {
   const [animKey, setAnimKey] = useState<string>(activeTab);
   const [toastMsg, setToastMsg] = useState<string>('');
@@ -58,39 +51,10 @@ export const MagicalTabSlideBanner: React.FC<MagicalTabSlideBannerProps> = ({
       return;
     }
     onQuickDeposit(iphoneGoal.id, amount);
-    setToastMsg(`+${currency}${amount} added to ${iphoneGoal.name}! 🚀`);
+    setToastMsg(`+${currency}${amount} added to ${iphoneGoal.name}! ðŸš€`);
     confetti({
       particleCount: 60,
       spread: 60,
-      origin: { y: 0.25 },
-    });
-    setTimeout(() => setToastMsg(''), 2500);
-  };
-
-  const handleExpense = (desc: string, category: any, amount: number) => {
-    if (!onQuickExpense) return;
-    if (amount > walletBalance) {
-      alert(`Insufficient balance (${currency}${walletBalance.toLocaleString()})`);
-      return;
-    }
-    const tx: Transaction = {
-      id: `TXN-MAG-${Date.now().toString().slice(-6)}`,
-      type: 'expense',
-      amount,
-      description: desc,
-      category,
-      recipientOrMerchant: `Campus: ${desc}`,
-      paymentMethod: 'PocketZapp Instant 1-Tap',
-      status: 'completed',
-      date: new Date().toISOString(),
-      referenceId: `REF-MAG-${Math.floor(100000 + Math.random() * 900000)}`,
-      notes: `1-Tap Campus situation log: ${desc}`,
-    };
-    onQuickExpense(tx);
-    setToastMsg(`Logged ${currency}${amount} for ${desc}! 🥪`);
-    confetti({
-      particleCount: 45,
-      spread: 45,
       origin: { y: 0.25 },
     });
     setTimeout(() => setToastMsg(''), 2500);
@@ -227,101 +191,6 @@ export const MagicalTabSlideBanner: React.FC<MagicalTabSlideBannerProps> = ({
           </div>
         )}
 
-        {/* ==================== 2. EXPENSES TAB: SITUATIONAL CAMPUS SLIDING ICONS ==================== */}
-        {activeTab === 'expenses' && (
-          <div>
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-tr from-indigo-600 to-blue-600 text-white shadow-md shadow-indigo-600/25 animate-pulseGently">
-                  <Zap className="h-6 w-6 text-yellow-300" />
-                </div>
-                <div>
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-xs font-extrabold uppercase tracking-wider text-indigo-600 flex items-center gap-1">
-                      <Sparkles className="h-3.5 w-3.5 text-indigo-500" />
-                      Situational Campus Quick-Log
-                    </span>
-                    <span className="rounded-full bg-indigo-100 px-2 py-0.2 text-[10px] font-bold text-indigo-800">
-                      1-Tap
-                    </span>
-                  </div>
-                  <h3 className="text-sm sm:text-base font-extrabold text-slate-900">
-                    Quick-Log Daily College Spending Scenarios
-                  </h3>
-                </div>
-              </div>
-            </div>
-
-            {/* Sliding Campus Situational Chips */}
-            <div className="mt-4 flex items-center gap-2.5 overflow-x-auto pb-1 text-xs no-scrollbar">
-              
-              {/* Situation 1: Mess / Canteen */}
-              <button
-                type="button"
-                onClick={() => handleExpense('Campus Canteen / Mess Lunch', 'Food', 120)}
-                style={{ animationDelay: '100ms' }}
-                className="flex items-center gap-2.5 rounded-2xl border border-amber-200/90 bg-amber-50/70 hover:bg-amber-100/80 px-3.5 py-2 shrink-0 transition-all active:scale-95 animate-slideIcon text-left group"
-              >
-                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-amber-500 text-white shadow-xs group-hover:scale-110 transition-transform">
-                  <Utensils className="h-4 w-4" />
-                </div>
-                <div>
-                  <span className="text-[10px] uppercase font-bold text-amber-700 block">Hostel Mess</span>
-                  <span className="font-extrabold text-slate-900 text-xs">{currency}120</span>
-                </div>
-              </button>
-
-              {/* Situation 2: Tapri Chai */}
-              <button
-                type="button"
-                onClick={() => handleExpense('Chai & Snacks at Campus Tapri', 'Food', 40)}
-                style={{ animationDelay: '200ms' }}
-                className="flex items-center gap-2.5 rounded-2xl border border-orange-200/90 bg-orange-50/70 hover:bg-orange-100/80 px-3.5 py-2 shrink-0 transition-all active:scale-95 animate-slideIcon text-left group"
-              >
-                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-orange-500 text-white shadow-xs group-hover:scale-110 transition-transform">
-                  <Coffee className="h-4 w-4" />
-                </div>
-                <div>
-                  <span className="text-[10px] uppercase font-bold text-orange-700 block">Tapri Chai</span>
-                  <span className="font-extrabold text-slate-900 text-xs">{currency}40</span>
-                </div>
-              </button>
-
-              {/* Situation 3: Exam Xerox */}
-              <button
-                type="button"
-                onClick={() => handleExpense('Exam Notes & Lab Xerox', 'Education', 65)}
-                style={{ animationDelay: '300ms' }}
-                className="flex items-center gap-2.5 rounded-2xl border border-blue-200/90 bg-blue-50/70 hover:bg-blue-100/80 px-3.5 py-2 shrink-0 transition-all active:scale-95 animate-slideIcon text-left group"
-              >
-                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-blue-600 text-white shadow-xs group-hover:scale-110 transition-transform">
-                  <BookOpen className="h-4 w-4" />
-                </div>
-                <div>
-                  <span className="text-[10px] uppercase font-bold text-blue-700 block">Exam Xerox</span>
-                  <span className="font-extrabold text-slate-900 text-xs">{currency}65</span>
-                </div>
-              </button>
-
-              {/* Situation 4: Campus Metro/Cab */}
-              <button
-                type="button"
-                onClick={() => handleExpense('Metro / Auto Ride to Campus', 'Travel', 80)}
-                style={{ animationDelay: '400ms' }}
-                className="flex items-center gap-2.5 rounded-2xl border border-emerald-200/90 bg-emerald-50/70 hover:bg-emerald-100/80 px-3.5 py-2 shrink-0 transition-all active:scale-95 animate-slideIcon text-left group"
-              >
-                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-600 text-white shadow-xs group-hover:scale-110 transition-transform">
-                  <Car className="h-4 w-4" />
-                </div>
-                <div>
-                  <span className="text-[10px] uppercase font-bold text-emerald-700 block">Campus Ride</span>
-                  <span className="font-extrabold text-slate-900 text-xs">{currency}80</span>
-                </div>
-              </button>
-            </div>
-          </div>
-        )}
-
         {/* ==================== 3. BUDGET TAB: SLIDING PACE ICONS ==================== */}
         {activeTab === 'budget' && (
           <div>
@@ -378,13 +247,13 @@ export const MagicalTabSlideBanner: React.FC<MagicalTabSlideBannerProps> = ({
 
             <div className="mt-4 flex items-center gap-2.5 overflow-x-auto pb-1 text-xs no-scrollbar">
               <div style={{ animationDelay: '100ms' }} className="flex items-center gap-2 rounded-2xl border border-cyan-200 bg-cyan-50 px-3.5 py-2 shrink-0 animate-slideIcon">
-                <span className="font-extrabold text-cyan-800">📸 Camera & File Upload Ready</span>
+                <span className="font-extrabold text-cyan-800">ðŸ“¸ Camera & File Upload Ready</span>
               </div>
               <div style={{ animationDelay: '200ms' }} className="flex items-center gap-2 rounded-2xl border border-blue-200 bg-blue-50 px-3.5 py-2 shrink-0 animate-slideIcon">
-                <span className="font-extrabold text-blue-800">🧾 Automatic Tax & Total Extraction</span>
+                <span className="font-extrabold text-blue-800">ðŸ§¾ Automatic Tax & Total Extraction</span>
               </div>
               <div style={{ animationDelay: '300ms' }} className="flex items-center gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 px-3.5 py-2 shrink-0 animate-slideIcon">
-                <span className="font-extrabold text-emerald-800">⚡ 1-Tap Auto-Logging to Wallet</span>
+                <span className="font-extrabold text-emerald-800">âš¡ 1-Tap Auto-Logging to Wallet</span>
               </div>
             </div>
           </div>
@@ -444,10 +313,10 @@ export const MagicalTabSlideBanner: React.FC<MagicalTabSlideBannerProps> = ({
 
             <div className="mt-4 flex items-center gap-2.5 overflow-x-auto pb-1 text-xs no-scrollbar">
               <div style={{ animationDelay: '100ms' }} className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-3.5 py-2 shrink-0 animate-slideIcon">
-                <span className="font-extrabold text-slate-800">📜 100% Verified Ledger</span>
+                <span className="font-extrabold text-slate-800">ðŸ“œ 100% Verified Ledger</span>
               </div>
               <div style={{ animationDelay: '200ms' }} className="flex items-center gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 px-3.5 py-2 shrink-0 animate-slideIcon">
-                <span className="font-extrabold text-emerald-800">📥 Instant PDF Receipts Available</span>
+                <span className="font-extrabold text-emerald-800">ðŸ“¥ Instant PDF Receipts Available</span>
               </div>
             </div>
           </div>
@@ -473,10 +342,10 @@ export const MagicalTabSlideBanner: React.FC<MagicalTabSlideBannerProps> = ({
 
             <div className="mt-4 flex items-center gap-2.5 overflow-x-auto pb-1 text-xs no-scrollbar">
               <div style={{ animationDelay: '100ms' }} className="flex items-center gap-2 rounded-2xl border border-teal-200 bg-teal-50 px-3.5 py-2 shrink-0 animate-slideIcon">
-                <span className="font-extrabold text-teal-800">📊 Savings Rate: 68%</span>
+                <span className="font-extrabold text-teal-800">ðŸ“Š Savings Rate: 68%</span>
               </div>
               <div style={{ animationDelay: '200ms' }} className="flex items-center gap-2 rounded-2xl border border-blue-200 bg-blue-50 px-3.5 py-2 shrink-0 animate-slideIcon">
-                <span className="font-extrabold text-blue-800">💡 AI Projection: Target met 12 days early</span>
+                <span className="font-extrabold text-blue-800">ðŸ’¡ AI Projection: Target met 12 days early</span>
               </div>
             </div>
           </div>

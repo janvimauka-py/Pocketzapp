@@ -47,7 +47,6 @@ export const TopNav: React.FC<TopNavProps> = ({
     switch (tab) {
       case 'wallet': return 'Digital Wallet & Overview';
       case 'savings': return 'Savings Goals & Vaults';
-      case 'expenses': return 'Expense & Income Manager';
       case 'budget': return 'Smart Monthly Budget';
       case 'scanner': return 'AI Receipt Vision Scanner';
       case 'history': return 'Transaction Audit History';

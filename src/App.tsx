@@ -25,7 +25,6 @@ import { LeftSidebar } from './components/Navigation/LeftSidebar';
 import { TopNav } from './components/Header/TopNav';
 import { HomeWalletView } from './components/Wallet/HomeWalletView';
 import { SavingsManager } from './components/Savings/SavingsManager';
-import { ExpenseManager } from './components/Expenses/ExpenseManager';
 import { BudgetManager } from './components/Budget/BudgetManager';
 import { TransactionHistory } from './components/TransactionHistory/TransactionHistory';
 import { AnalyticsReports } from './components/Analytics/AnalyticsReports';
@@ -316,9 +315,6 @@ export function App() {
                     });
                   }
                 }}
-                onQuickExpense={(tx) => {
-                  handleRecordTransaction(tx);
-                }}
               />
 
               {/* View 1: Digital Wallet (Main Home Screen) */}
@@ -363,24 +359,7 @@ export function App() {
                 />
               )}
 
-              {/* View 3: Smart Expense Manager */}
-              {activeTab === 'expenses' && (
-                <ExpenseManager
-                  transactions={transactions}
-                  currency={user.currency || '₹'}
-                  onAddTransaction={handleRecordTransaction}
-                  onEditTransaction={(updatedTx) => {
-                    setTransactions((prev) =>
-                      prev.map((t) => (t.id === updatedTx.id ? updatedTx : t))
-                    );
-                  }}
-                  onDeleteTransaction={(txId) => {
-                    setTransactions((prev) => prev.filter((t) => t.id !== txId));
-                  }}
-                />
-              )}
-
-              {/* View 4: Smart Budget Manager */}
+              {/* View 3: Smart Budget Manager */}
               {activeTab === 'budget' && (
                 <BudgetManager
                   budget={budget}
